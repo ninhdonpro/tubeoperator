@@ -1,0 +1,126 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Contact" activePage="contact">
+<section class="contact">
+  <div class="contact-head">
+    <span class="badge badge-soft">Contact</span>
+    <h1>Let's Build Something <span class="hl">Great</span></h1>
+    <p>Have a question, a partnership idea, or just want to say hello? Drop us a line — we read every message and reply within one business day.</p>
+  </div>
+
+  <div class="contact-grid">
+    <!-- INFO -->
+    <div class="info">
+      <h2>Talk To The Team</h2>
+      <p>Prefer email or social? Reach us directly through any of the channels below.</p>
+      <div class="info-list">
+        <div class="info-item">
+          <span class="ic"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg></span>
+          <div>
+            <div class="lb">Email us</div>
+            <div class="vl"><a href="mailto:support@tubeoperator.com">support@tubeoperator.com</a></div>
+            <div class="sm">For general questions &amp; support</div>
+          </div>
+        </div>
+        <div class="info-item">
+          <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 10.4 4 2.3-1 1.7L11 13V7h2z"/></svg></span>
+          <div>
+            <div class="lb">Response time</div>
+            <div class="vl">Within 24 hours</div>
+            <div class="sm">Monday to Friday, 9am–6pm</div>
+          </div>
+        </div>
+      </div>
+      <div class="socials-row">
+        <a href="#" aria-label="X"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
+        <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2c2.7 0 3 0 4.1.1 1.1 0 1.8.2 2.4.5.6.2 1.1.5 1.6 1s.8 1 1 1.6c.3.6.5 1.3.5 2.4.1 1.1.1 1.4.1 4.1s0 3-.1 4.1c0 1.1-.2 1.8-.5 2.4-.2.6-.5 1.1-1 1.6s-1 .8-1.6 1c-.6.3-1.3.5-2.4.5-1.1.1-1.4.1-4.1.1s-3 0-4.1-.1c-1.1 0-1.8-.2-2.4-.5-.6-.2-1.1-.5-1.6-1s-.8-1-1-1.6c-.3-.6-.5-1.3-.5-2.4C2 15 2 14.7 2 12s0-3 .1-4.1c0-1.1.2-1.8.5-2.4.2-.6.5-1.1 1-1.6s1-.8 1.6-1c.6-.3 1.3-.5 2.4-.5C9 2 9.3 2 12 2zm0 5a5 5 0 100 10 5 5 0 000-10zm0 8.2a3.2 3.2 0 110-6.4 3.2 3.2 0 010 6.4zm5.2-8.4a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z"/></svg></a>
+        <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24"><path d="M21.6 7.2c-.2-1-1-1.7-2-2C17.8 4.8 12 4.8 12 4.8s-5.8 0-7.6.4c-1 .3-1.8 1-2 2C2 9 2 12 2 12s0 3 .4 4.8c.2 1 1 1.7 2 2 1.8.4 7.6.4 7.6.4s5.8 0 7.6-.4c1-.3 1.8-1 2-2C22 15 22 12 22 12s0-3-.4-4.8zM10 15.5v-7l6 3.5-6 3.5z"/></svg></a>
+      </div>
+    </div>
+
+    <!-- FORM -->
+    <form class="form-card" onsubmit="return false">
+      <div class="form-row">
+        <div class="field"><label>Full Name</label><input class="input" placeholder="Jane Creator"></div>
+        <div class="field"><label>Email Address</label><input class="input" type="email" placeholder="jane@channel.com"></div>
+      </div>
+      <div class="field">
+        <label>What's This About?</label>
+        <select class="input">
+          <option>General question</option>
+          <option>Partnership or sponsorship</option>
+          <option>Press &amp; media</option>
+          <option>Product support</option>
+          <option>Something else</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Message</label>
+        <textarea class="input" placeholder="Tell us a little about what you need…"></textarea>
+      </div>
+      <div class="form-foot">
+        <span class="privacy">We'll only use your details to reply. No spam, ever.</span>
+        <button class="btn btn-primary" type="submit">Send Message <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </form>
+  </div>
+</section>
+</BaseLayout>
+
+<style>
+/* ===== Contact section ===== */
+.contact{max-width:1240px;margin:0 auto;padding:var(--sp-9) 48px var(--sp-8)}
+.contact-head{text-align:center;max-width:680px;margin:0 auto var(--sp-8)}
+.contact-head .badge{margin-bottom:var(--sp-5)}
+.contact-head h1{font-family:var(--font-display);font-weight:800;font-size:52px;line-height:1.12;letter-spacing:-.03em;text-transform:capitalize}
+.contact-head h1 .hl{color:var(--red-500);position:relative;white-space:nowrap}
+.contact-head h1 .hl::after{content:"";position:absolute;left:0;right:0;bottom:.02em;height:.09em;background:var(--red-300);border-radius:4px}
+.contact-head p{font-size:20px;color:var(--ink-600);margin-top:var(--sp-4);line-height:1.6}
+
+.contact-grid{display:grid;grid-template-columns:0.85fr 1.15fr;gap:var(--sp-7);align-items:start}
+
+/* info column */
+.info h2{font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:-.02em;text-transform:capitalize}
+.info>p{font-size:17px;color:var(--ink-600);margin-top:10px;max-width:38ch}
+.info-list{margin-top:var(--sp-6);display:flex;flex-direction:column;gap:var(--sp-4)}
+.info-item{display:flex;gap:16px;align-items:flex-start;background:var(--bg-surface);border:1px solid var(--ink-200);
+  border-radius:var(--r-lg);padding:20px 22px;box-shadow:var(--sh-1)}
+.info-item .ic{width:46px;height:46px;border-radius:12px;background:var(--red-50);color:var(--red-600);display:grid;place-items:center;flex-shrink:0}
+.info-item .ic svg{width:23px;height:23px;fill:currentColor}
+.info-item .lb{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-400)}
+.info-item .vl{font-size:18px;font-weight:600;margin-top:3px}
+.info-item .vl a:hover{color:var(--red-600)}
+.info-item .sm{font-size:14px;color:var(--ink-500);margin-top:2px}
+.socials-row{display:flex;gap:12px;margin-top:var(--sp-6)}
+.socials-row a{width:46px;height:46px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--ink-200);
+  display:grid;place-items:center;color:var(--ink-500);transition:all .12s var(--ease)}
+.socials-row a:hover{color:var(--red-600);border-color:var(--red-300);transform:translateY(-2px)}
+.socials-row svg{width:20px;height:20px;fill:currentColor}
+
+/* form card */
+.form-card{background:var(--bg-surface);border:1px solid var(--ink-200);border-radius:var(--r-xl);padding:var(--sp-7);box-shadow:var(--sh-2)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4)}
+.field{margin-bottom:var(--sp-5)}
+.field label{display:block;font-size:15px;font-weight:600;margin-bottom:8px}
+.input{width:100%;font-family:var(--font-body);font-size:17px;padding:15px 16px;border:1.5px solid var(--ink-200);
+  border-radius:var(--r-sm);background:#fff;transition:border-color .12s var(--ease),box-shadow .12s var(--ease)}
+.input::placeholder{color:var(--ink-400)}
+.input:focus{outline:none;border-color:var(--red-500);box-shadow:0 0 0 3px var(--red-100)}
+textarea.input{min-height:150px;resize:vertical;line-height:1.6}
+select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23909090'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:42px}
+.form-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);margin-top:var(--sp-3);flex-wrap:wrap}
+.form-foot .privacy{font-size:14px;color:var(--ink-500);max-width:30ch}
+
+@media(max-width:900px){
+  .contact{padding:var(--sp-8) 24px var(--sp-7)}
+  .contact-head h1{font-size:40px}
+  .contact-grid{grid-template-columns:1fr;gap:var(--sp-6)}
+}
+@media(max-width:520px){
+  .contact-head h1{font-size:32px}
+  .form-row{grid-template-columns:1fr}
+  .form-card{padding:var(--sp-5)}
+}
+</style>
