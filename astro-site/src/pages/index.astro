@@ -1,17 +1,87 @@
 ---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPosts, getCategories } from '../lib/wordpress';
 
+const { posts } = await getPosts(20);
+const categories = await getCategories();
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/\\n/g, ' ').trim();
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function getExcerpt(post: any): string {
+  const raw = post.excerpt?.rendered || post.content?.rendered || '';
+  return stripHtml(raw).substring(0, 160) + '...';
+}
+
+function getCategoryName(post: any, categories: any[]): string {
+  const catId = post.categories?.[0];
+  const cat = categories.find((c: any) => c.id === catId);
+  return cat?.name || 'Uncategorized';
+}
+
+function getAuthorName(post: any): string {
+  return post._embedded?.author?.[0]?.name || 'Don Ninh';
+}
+
+function getFeaturedImage(post: any): string | null {
+  return post._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
+}
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout title="Blog">
+  <section class="hero">
+    <div class="hero-badge">🚀 YouTube × AI</div>
+    <h1>
+      Build Your YouTube Empire<br />
+      <span class="gradient-text">with AI-Powered Systems</span>
+    </h1>
+    <p>
+      Proven strategies, real case studies, and battle-tested systems from 20+ channels with 6 billion+ views.
+    </p>
+  </section>
+
+  <div class="categories-strip">
+    {categories.map((cat: any) => (
+      <span class="cat-pill">{cat.name}</span>
+    ))}
+  </div>
+
+  <section class="posts-section">
+    <h2 class="section-title">Latest Articles</h2>
+    <div class="posts-grid">
+      {posts.map((post: any) => {
+        const image = getFeaturedImage(post);
+        return (
+          <a href={`/blog/${post.slug}`} class="post-card">
+            <div class="post-card-image">
+              {image ? (
+                <img src={image} alt={stripHtml(post.title.rendered)} loading="lazy" />
+              ) : (
+                <span>📺</span>
+              )}
+            </div>
+            <div class="post-card-body">
+              <div class="post-meta">
+                <span class="post-category">{getCategoryName(post, categories)}</span>
+                <span>{formatDate(post.date)}</span>
+                <span>· {getAuthorName(post)}</span>
+              </div>
+              <h3 set:html={post.title.rendered} />
+              <p class="post-excerpt">{getExcerpt(post)}</p>
+              <span class="read-more">Read article →</span>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  </section>
+</BaseLayout>

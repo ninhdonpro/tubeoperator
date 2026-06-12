@@ -1,0 +1,70 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getPosts, getPostBySlug, getCategories } from '../../lib/wordpress';
+
+export async function getStaticPaths() {
+  const { posts } = await getPosts(100);
+  return posts.map((post: any) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const categories = await getCategories();
+
+function getCategoryName(post: any, categories: any[]): string {
+  const catId = post.categories?.[0];
+  const cat = categories.find((c: any) => c.id === catId);
+  return cat?.name || 'Uncategorized';
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+function getAuthor(post: any) {
+  const author = post._embedded?.author?.[0];
+  return {
+    name: author?.name || 'Don Ninh',
+    avatar: author?.avatar_urls?.['96'] || '',
+    description: author?.description || '',
+  };
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
+const title = stripHtml(post.title.rendered);
+const author = getAuthor(post);
+const category = getCategoryName(post, categories);
+const excerpt = stripHtml(post.excerpt?.rendered || '').substring(0, 160);
+---
+
+<BaseLayout title={title} description={excerpt}>
+  <article class="post-single">
+    <header class="post-single-header">
+      <span class="post-category" style="margin-bottom: 1rem; display: inline-block;">{category}</span>
+      <h1 set:html={post.title.rendered} />
+      <div class="post-single-meta">
+        <span class="author">
+          {author.avatar && <img src={author.avatar} alt={author.name} />}
+          {author.name}
+        </span>
+        <span>·</span>
+        <time datetime={post.date}>{formatDate(post.date)}</time>
+      </div>
+    </header>
+
+    <div class="post-content" set:html={post.content.rendered} />
+
+    <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--color-border); text-align: center;">
+      <a href="/" class="read-more" style="font-size: 1rem;">← Back to all articles</a>
+    </div>
+  </article>
+</BaseLayout>
