@@ -217,8 +217,8 @@ const isDismissed = getCk('to_gate_dismiss') === '1';
 if (isSub || isDismissed) {
   const g = document.getElementById('gate'); if (g) g.style.display = 'none';
   const l = document.getElementById('locked-content'); if (l) l.style.display = 'block';
-  const t = document.getElementById('toc'); if (t) t.style.display = 'block';
   if (isSub) {
+    const t = document.getElementById('toc'); if (t) t.style.display = 'block';
     const s = document.getElementById('side-nl'); if (s) s.style.display = 'none';
   }
 }

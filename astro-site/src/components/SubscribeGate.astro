@@ -84,7 +84,6 @@ const { slug } = Astro.props;
     document.cookie = 'to_gate_dismiss=1; path=/; max-age=604800; SameSite=Lax; Secure';
     if (gate) gate.style.display = 'none';
     if (locked) locked.style.display = 'block';
-    if (toc) toc.style.display = 'block';
   });
 </script>
 
