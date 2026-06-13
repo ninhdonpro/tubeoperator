@@ -31,22 +31,16 @@ const { slug } = Astro.props;
     return m ? m[1] : null;
   }
 
-  const gate = document.getElementById('gate');
-  const locked = document.getElementById('locked-content');
-  const toc = document.getElementById('toc');
-
   // Already subscribed or dismissed → remove gate, show content
   const isSub = getCookie('to_sub') === '1';
   const isDismissed = getCookie('to_gate_dismiss') === '1';
 
   if (isSub || isDismissed) {
+    const gate = document.getElementById('gate');
     if (gate) gate.style.display = 'none';
-    if (locked) locked.style.display = 'block';
-    if (toc) toc.style.display = 'block';
-    if (isSub) {
-      const sideNl = document.getElementById('side-nl');
-      if (sideNl) sideNl.style.display = 'none';
-    }
+    
+    // Note: locked and toc might not be in DOM yet during parser execution of this script,
+    // but the script at the bottom of [slug].astro will handle showing them on load.
   }
 
   // Subscribe form
@@ -64,12 +58,15 @@ const { slug } = Astro.props;
     // Set subscriber cookie (1 year)
     document.cookie = 'to_sub=1; path=/; max-age=31536000; SameSite=Lax; Secure';
 
-    // Show locked content
+    // Query elements dynamically to ensure they are found after full DOM load
+    const gate = document.getElementById('gate');
+    const locked = document.getElementById('locked-content');
+    const toc = document.getElementById('toc');
+    const sideNl = document.getElementById('side-nl');
+
     if (locked) locked.style.display = 'block';
     if (toc) toc.style.display = 'block';
     if (gate) gate.style.display = 'none';
-    
-    const sideNl = document.getElementById('side-nl');
     if (sideNl) sideNl.style.display = 'none';
 
     // TODO: Send email to GHL webhook when configured
@@ -82,6 +79,11 @@ const { slug } = Astro.props;
 
   notNow?.addEventListener('click', () => {
     document.cookie = 'to_gate_dismiss=1; path=/; max-age=604800; SameSite=Lax; Secure';
+    
+    // Query elements dynamically to ensure they are found after full DOM load
+    const gate = document.getElementById('gate');
+    const locked = document.getElementById('locked-content');
+
     if (gate) gate.style.display = 'none';
     if (locked) locked.style.display = 'block';
   });
