@@ -16,12 +16,13 @@ const { post } = Astro.props;
 const categories = await getCategories();
 const { posts: allPosts } = await getPosts(100);
 
-// Split content into free/locked
-const { free, locked } = splitGate(post.content.rendered);
-const hasGate = locked.length > 0;
+// Content splitting moved below TOC extraction
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').trim();
+  return html.replace(/<[^>]*>/g, '').replace(/&#(\d+);/g, (_,n) => String.fromCharCode(Number(n))).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#039;/g,"'").replace(/&rsquo;/g,"\u2019").replace(/&lsquo;/g,"\u2018").replace(/&rdquo;/g,"\u201D").replace(/&ldquo;/g,"\u201C").replace(/&ndash;/g,"\u2013").replace(/&mdash;/g,"\u2014").trim();
+}
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 }
 function getCategoryName(p: any, cats: any[]): string {
   const catId = p.categories?.[0];
@@ -58,12 +59,28 @@ const catColor = getCatColor(category);
 const related = allPosts.filter((p: any) => p.id !== post.id).slice(0, 3);
 
 // Extract h2 headings for TOC from full content
-const h2Regex = /<h2[^>]*id="([^"]*)"[^>]*>(.*?)<\/h2>/gi;
+const h2Regex = /<h2[^>]*>(.*?)<\/h2>/gi;
 const tocItems: {id: string, text: string}[] = [];
 let match;
-while ((match = h2Regex.exec(post.content.rendered)) !== null) {
-  tocItems.push({ id: match[1], text: stripHtml(match[2]) });
+let fullHtml = post.content.rendered;
+while ((match = h2Regex.exec(fullHtml)) !== null) {
+  const text = stripHtml(match[1]);
+  const id = slugify(text);
+  tocItems.push({ id, text });
 }
+// Inject id attributes into h2 tags in content
+let contentHtml = post.content.rendered;
+let h2Index = 0;
+contentHtml = contentHtml.replace(/<h2([^>]*)>/gi, (fullMatch, attrs) => {
+  if (h2Index < tocItems.length) {
+    const id = tocItems[h2Index].id;
+    h2Index++;
+    return `<h2 id="${id}"${attrs}>`;
+  }
+  return fullMatch;
+});
+const { free, locked } = splitGate(contentHtml);
+const hasGate = locked.length > 0;
 ---
 
 <BaseLayout title={title} description={excerpt} activePage="blog">
