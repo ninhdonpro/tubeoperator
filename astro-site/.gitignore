@@ -26,3 +26,4 @@ pnpm-debug.log*
 # spec
 spec.md
 task.md
+./design

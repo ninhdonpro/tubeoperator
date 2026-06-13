@@ -6,34 +6,13 @@ const { posts } = await getPosts(100);
 const categories = await getCategories();
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/\n/g, ' ').trim();
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function getExcerpt(post: any): string {
-  const raw = post.excerpt?.rendered || post.content?.rendered || '';
-  return stripHtml(raw).substring(0, 140) + '...';
+  return html.replace(/<[^>]*>/g, '').replace(/\\n/g, ' ').trim();
 }
 
 function getCategoryName(post: any, cats: any[]): string {
   const catId = post.categories?.[0];
   const cat = cats.find((c: any) => c.id === catId);
   return cat?.name || 'Uncategorized';
-}
-
-function getAuthorName(post: any): string {
-  return post._embedded?.author?.[0]?.name || 'Don Ninh';
-}
-
-function getInitials(name: string): string {
-  return name.split(' ').map((x: string) => x[0]).slice(0, 2).join('');
 }
 
 // Category color mapping from design
@@ -43,6 +22,11 @@ const catColors: Record<string, string> = {
 };
 function getCatColor(catName: string): string {
   return catColors[catName] || '#E62117';
+}
+
+function getFeaturedImage(post: any): string | null {
+  const media = post._embedded?.['wp:featuredmedia']?.[0];
+  return media?.source_url || null;
 }
 ---
 
@@ -59,22 +43,14 @@ function getCatColor(catName: string): string {
   {posts.length > 0 && (() => {
     const fp = posts[0];
     const fpCat = getCategoryName(fp, categories);
-    const fpAuthor = getAuthorName(fp);
+    const fpImg = getFeaturedImage(fp);
     return (
       <a href={`/blog/${fp.slug}`} class="featured">
-        <div class="fc" style={`background:${getCatColor(fpCat)}`}>
+        <div class="fc" style={fpImg ? `background-image:url(${fpImg})` : `background:${getCatColor(fpCat)}`}>
           <span class="badge badge-dark fbadge">Editor's pick</span>
-          <span class="ftitle" set:html={fp.title.rendered} />
-          <span class="ovl"></span>
         </div>
         <div class="ftxt">
-          <span class="cat-tag">{fpCat}</span>
           <h2 set:html={fp.title.rendered} />
-          <p>{getExcerpt(fp)}</p>
-          <div class="byline" style="border-top:none;padding-top:0;margin-top:18px">
-            <span class="avatar" style={`background:${getCatColor(fpCat)}`}>{getInitials(fpAuthor)}</span>
-            <div><div class="au">{fpAuthor}</div><div class="mt">{formatDate(fp.date)}</div></div>
-          </div>
         </div>
       </a>
     );
@@ -97,21 +73,13 @@ function getCatColor(catName: string): string {
   <div class="card-grid">
     {posts.map((post: any) => {
       const pCat = getCategoryName(post, categories);
-      const pAuthor = getAuthorName(post);
+      const pImg = getFeaturedImage(post);
       return (
         <a href={`/blog/${post.slug}`} class="art-card">
-          <div class="art-cover" style={`background:${getCatColor(pCat)}`}>
-            <span class="ovl"></span>
-            <span class="cover-title" set:html={post.title.rendered} />
+          <div class="art-cover" style={pImg ? `background-image:url(${pImg})` : `background:${getCatColor(pCat)}`}>
           </div>
           <div class="art-body">
-            <span class="cat-tag">{pCat}</span>
             <h3 class="art-title" set:html={post.title.rendered} />
-            <p class="art-excerpt">{getExcerpt(post)}</p>
-            <div class="byline">
-              <span class="avatar" style={`background:${getCatColor(pCat)}`}>{getInitials(pAuthor)}</span>
-              <div><div class="au">{pAuthor}</div><div class="mt">{formatDate(post.date)}</div></div>
-            </div>
           </div>
         </a>
       );
@@ -135,14 +103,11 @@ function getCatColor(catName: string): string {
 .featured{display:grid;grid-template-columns:1.15fr 1fr;background:var(--bg-surface);border:1px solid var(--ink-200);
   border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh-2);margin-bottom:var(--sp-7);cursor:pointer;transition:box-shadow var(--dur) var(--ease)}
 .featured:hover{box-shadow:var(--sh-3)}
-.featured .fc{min-height:340px;display:flex;align-items:flex-end;padding:var(--sp-6);position:relative}
-.featured .fc .ovl{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.45))}
+.featured .fc{min-height:340px;display:flex;align-items:flex-end;padding:var(--sp-6);position:relative;
+  background-size:cover;background-position:center;background-repeat:no-repeat}
 .featured .fc .fbadge{position:absolute;top:var(--sp-5);left:var(--sp-6)}
-.featured .fc .ftitle{position:relative;font-family:var(--font-display);font-weight:800;font-size:34px;color:#fff;line-height:1.15;letter-spacing:-.02em;max-width:16ch;text-shadow:0 2px 12px rgba(0,0,0,.3)}
 .featured .ftxt{padding:var(--sp-7) var(--sp-6);display:flex;flex-direction:column;justify-content:center}
-.cat-tag{font-size:13px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--red-600)}
-.featured .ftxt h2{font-family:var(--font-display);font-weight:800;font-size:30px;line-height:1.18;letter-spacing:-.02em;margin:10px 0 12px}
-.featured .ftxt p{font-size:17px;color:var(--ink-500);max-width:46ch}
+.featured .ftxt h2{font-family:var(--font-display);font-weight:800;font-size:30px;line-height:1.18;letter-spacing:-.02em;margin:0}
 
 /* newsletter band */
 .nl-band{background:var(--bg-dark);border-radius:var(--r-xl);padding:var(--sp-7);margin-top:var(--sp-8);
@@ -160,16 +125,9 @@ function getCatColor(catName: string): string {
 .art-card{background:var(--bg-surface);border:1px solid var(--ink-200);border-radius:var(--r-lg);overflow:hidden;
   box-shadow:var(--sh-1);transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease);cursor:pointer;display:flex;flex-direction:column}
 .art-card:hover{box-shadow:var(--sh-3);transform:translateY(-3px)}
-.art-cover{aspect-ratio:16/9;position:relative;display:flex;align-items:flex-end;padding:var(--sp-5)}
-.art-cover .ovl{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(0,0,0,.32))}
-.art-cover .cover-title{position:relative;font-family:var(--font-display);font-weight:800;font-size:23px;line-height:1.15;color:#fff;letter-spacing:-.02em;max-width:14ch;text-shadow:0 1px 8px rgba(0,0,0,.25)}
-.art-body{padding:var(--sp-5);display:flex;flex-direction:column;flex:1}
-.art-title{font-family:var(--font-display);font-weight:700;font-size:21px;line-height:1.3;margin:9px 0 9px;letter-spacing:-.01em}
-.art-excerpt{font-size:16px;color:var(--ink-500);line-height:1.55;flex:1}
-.byline{display:flex;align-items:center;gap:11px;margin-top:var(--sp-5);padding-top:var(--sp-4);border-top:1px solid var(--ink-200)}
-.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
-.byline .au{font-size:15px;font-weight:600;line-height:1.2}
-.byline .mt{font-size:13px;color:var(--ink-400)}
+.art-cover{aspect-ratio:16/9;background-size:cover;background-position:center;background-repeat:no-repeat}
+.art-body{padding:var(--sp-5)}
+.art-title{font-family:var(--font-display);font-weight:700;font-size:21px;line-height:1.3;margin:0;letter-spacing:-.01em}
 
 @media(max-width:980px){
   .blog{padding:var(--sp-6) 24px var(--sp-7)}

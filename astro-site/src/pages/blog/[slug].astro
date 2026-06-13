@@ -44,6 +44,11 @@ const catColors: Record<string, string> = {
 };
 function getCatColor(catName: string): string { return catColors[catName] || '#E62117'; }
 
+function getFeaturedImage(p: any): string | null {
+  const media = p._embedded?.['wp:featuredmedia']?.[0];
+  return media?.source_url || null;
+}
+
 const title = stripHtml(post.title.rendered);
 const author = getAuthorName(post);
 const authorDesc = getAuthorDesc(post);
@@ -132,9 +137,10 @@ while ((match = h2Regex.exec(contentHtml)) !== null) {
       <div class="rn-grid">
         {related.map((rp: any) => {
           const rpCat = getCategoryName(rp, categories);
+          const rpImg = getFeaturedImage(rp);
           return (
             <a href={`/blog/${rp.slug}`} class="rn-card">
-              <div class="rc" style={`background:${getCatColor(rpCat)}`}></div>
+              <div class="rc" style={rpImg ? `background-image:url(${rpImg})` : `background:${getCatColor(rpCat)}`}></div>
               <div class="rb"><div class="rt" set:html={rp.title.rendered} /></div>
             </a>
           );
@@ -233,7 +239,7 @@ secs.forEach(s=>s&&obs.observe(s));
 .rn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-5)}
 .rn-card{background:var(--bg-surface);border:1px solid var(--ink-200);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-1);transition:all var(--dur) var(--ease);cursor:pointer}
 .rn-card:hover{box-shadow:var(--sh-3);transform:translateY(-3px)}
-.rn-card .rc{aspect-ratio:16/9;width:100%}
+.rn-card .rc{aspect-ratio:16/9;width:100%;background-size:cover;background-position:center;background-repeat:no-repeat}
 .rn-card .rb{padding:var(--sp-5)}
 .rn-card .rt{font-family:var(--font-display);font-weight:700;font-size:18px;line-height:1.3}
 
