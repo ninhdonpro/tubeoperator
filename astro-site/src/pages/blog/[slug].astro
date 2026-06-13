@@ -1,18 +1,27 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getPosts, getCategories } from '../../lib/wordpress';
+import SubscribeGate from '../../components/SubscribeGate.astro';
+import { getPostBySlug, getPosts, getCategories } from '../../lib/wordpress';
+import { splitGate } from '../../lib/splitGate';
 
-export async function getStaticPaths() {
-  const { posts } = await getPosts(100);
-  return posts.map((post: any) => ({
-    params: { slug: post.slug },
-    props: { post },
-  }));
-}
+// This page is SSR (not prerendered) — so we can read cookies
+export const prerender = false;
 
-const { post } = Astro.props;
+// Fetch post by slug from URL
+const { slug } = Astro.params;
+const post = await getPostBySlug(slug!);
+if (!post) return Astro.redirect('/blog');
+
 const categories = await getCategories();
 const { posts: allPosts } = await getPosts(100);
+
+// Check subscriber status from cookie
+const subscribed = Astro.cookies.get('to_sub')?.value === '1';
+const dismissed = Astro.cookies.get('to_gate_dismiss')?.value === '1';
+
+// Split content into free/locked
+const { free, locked } = splitGate(post.content.rendered);
+const hasGate = locked.length > 0;
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
@@ -25,17 +34,15 @@ function getCategoryName(p: any, cats: any[]): string {
 function getAuthorName(p: any): string {
   return p._embedded?.author?.[0]?.name || 'Don Ninh';
 }
-function getAuthorDesc(p: any): string {
-  return p._embedded?.author?.[0]?.description || '';
-}
-function getAuthorAvatar(p: any): string {
-  return p._embedded?.author?.[0]?.avatar_urls?.['96'] || '';
-}
 function getInitials(name: string): string {
   return name.split(' ').map((x: string) => x[0]).slice(0, 2).join('');
 }
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+function getFeaturedImage(p: any): string | null {
+  const media = p._embedded?.['wp:featuredmedia']?.[0];
+  return media?.source_url || null;
 }
 
 const catColors: Record<string, string> = {
@@ -44,14 +51,8 @@ const catColors: Record<string, string> = {
 };
 function getCatColor(catName: string): string { return catColors[catName] || '#E62117'; }
 
-function getFeaturedImage(p: any): string | null {
-  const media = p._embedded?.['wp:featuredmedia']?.[0];
-  return media?.source_url || null;
-}
-
 const title = stripHtml(post.title.rendered);
 const author = getAuthorName(post);
-const authorDesc = getAuthorDesc(post);
 const category = getCategoryName(post, categories);
 const excerpt = stripHtml(post.excerpt?.rendered || '').substring(0, 160);
 const catColor = getCatColor(category);
@@ -59,14 +60,18 @@ const catColor = getCatColor(category);
 // Related posts (exclude current)
 const related = allPosts.filter((p: any) => p.id !== post.id).slice(0, 3);
 
-// Extract h2 headings for TOC from content
+// Extract h2 headings for TOC — from the FULL content (subscribed) or free part only
+const tocSource = subscribed ? post.content.rendered : free;
 const h2Regex = /<h2[^>]*id="([^"]*)"[^>]*>(.*?)<\/h2>/gi;
 const tocItems: {id: string, text: string}[] = [];
 let match;
-const contentHtml = post.content.rendered;
-while ((match = h2Regex.exec(contentHtml)) !== null) {
+while ((match = h2Regex.exec(tocSource)) !== null) {
   tocItems.push({ id: match[1], text: stripHtml(match[2]) });
 }
+
+// Decide whether to show gate
+const showGate = hasGate && !subscribed && !dismissed;
+const showContent = !hasGate || subscribed;
 ---
 
 <BaseLayout title={title} description={excerpt} activePage="blog">
@@ -93,10 +98,17 @@ while ((match = h2Regex.exec(contentHtml)) !== null) {
 
   <!-- GRID: content + sidebar -->
   <div class="art-grid">
-    <div class="prose" set:html={post.content.rendered} />
+    <div class="prose">
+      <!-- Free part — always visible -->
+      <Fragment set:html={free} />
+
+      <!-- Gate or locked content -->
+      {showGate && <SubscribeGate slug={slug!} />}
+      {showContent && <Fragment set:html={locked} />}
+    </div>
 
     <aside class="side">
-      {tocItems.length > 0 && (
+      {subscribed && tocItems.length > 0 && (
         <nav class="toc" id="toc">
           <div class="tt">On This Page</div>
           {tocItems.map((item, i) => (
@@ -118,17 +130,19 @@ while ((match = h2Regex.exec(contentHtml)) !== null) {
     </aside>
   </div>
 
-  <!-- GIFT / LEAD MAGNET -->
-  <section class="gift-box">
-    <div class="gk"><svg viewBox="0 0 24 24"><path d="M20 7h-2.2a3 3 0 00-4.3-3.9L12 4.2l-1.5-1.1A3 3 0 006.2 7H4a1 1 0 00-1 1v3a1 1 0 001 1v6a2 2 0 002 2h12a2 2 0 002-2v-6a1 1 0 001-1V8a1 1 0 00-1-1zm-5-2a1 1 0 011 1 1 1 0 01-1 1h-1V6a1 1 0 011-1zM9 5a1 1 0 011 1v1H9a1 1 0 010-2zm2 14H6v-6h5zm0-8H5V9h6zm7 8h-5v-6h5zm1-8h-6V9h6z"/></svg>Before You Go</div>
-    <h2>Get My Free Guide On How To Grow Your Channel To 100k Subscribers</h2>
-    <p class="gp">Sign up to get instant access to The AI YouTube Toolkit — 18 tools &amp; templates used by 7-figure operators. Plus weekly growth tactics, case studies, and creator news delivered to your inbox.</p>
-    <form class="gift-form" onsubmit="return false">
-      <input type="email" placeholder="Enter your email" aria-label="Email address">
-      <button class="btn btn-primary" type="submit">Join Free</button>
-    </form>
-    <div class="gnote">Join 120,000+ creators for free.</div>
-  </section>
+  <!-- GIFT / LEAD MAGNET (only for subscribers who see full content) -->
+  {showContent && (
+    <section class="gift-box">
+      <div class="gk"><svg viewBox="0 0 24 24"><path d="M20 7h-2.2a3 3 0 00-4.3-3.9L12 4.2l-1.5-1.1A3 3 0 006.2 7H4a1 1 0 00-1 1v3a1 1 0 001 1v6a2 2 0 002 2h12a2 2 0 002-2v-6a1 1 0 001-1V8a1 1 0 00-1-1zm-5-2a1 1 0 011 1 1 1 0 01-1 1h-1V6a1 1 0 011-1zM9 5a1 1 0 011 1v1H9a1 1 0 010-2zm2 14H6v-6h5zm0-8H5V9h6zm7 8h-5v-6h5zm1-8h-6V9h6z"/></svg>Before You Go</div>
+      <h2>Get My Free Guide On How To Grow Your Channel To 100k Subscribers</h2>
+      <p class="gp">Sign up to get instant access to The AI YouTube Toolkit — 18 tools &amp; templates used by 7-figure operators. Plus weekly growth tactics, case studies, and creator news delivered to your inbox.</p>
+      <form class="gift-form" onsubmit="return false">
+        <input type="email" placeholder="Enter your email" aria-label="Email address">
+        <button class="btn btn-primary" type="submit">Join Free</button>
+      </form>
+      <div class="gnote">Join 120,000+ creators for free.</div>
+    </section>
+  )}
 
   <!-- READ NEXT -->
   {related.length > 0 && (
