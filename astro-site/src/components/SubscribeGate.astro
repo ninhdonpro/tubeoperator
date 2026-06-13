@@ -35,15 +35,18 @@ const { slug } = Astro.props;
   const locked = document.getElementById('locked-content');
   const toc = document.getElementById('toc');
 
-  // Already subscribed → remove gate, show content
-  if (getCookie('to_sub') === '1') {
+  // Already subscribed or dismissed → remove gate, show content
+  const isSub = getCookie('to_sub') === '1';
+  const isDismissed = getCookie('to_gate_dismiss') === '1';
+
+  if (isSub || isDismissed) {
     if (gate) gate.style.display = 'none';
     if (locked) locked.style.display = 'block';
     if (toc) toc.style.display = 'block';
-  }
-  // Dismissed → hide gate but keep content locked
-  else if (getCookie('to_gate_dismiss') === '1') {
-    if (gate) gate.style.display = 'none';
+    if (isSub) {
+      const sideNl = document.getElementById('side-nl');
+      if (sideNl) sideNl.style.display = 'none';
+    }
   }
 
   // Subscribe form
@@ -65,6 +68,9 @@ const { slug } = Astro.props;
     if (locked) locked.style.display = 'block';
     if (toc) toc.style.display = 'block';
     if (gate) gate.style.display = 'none';
+    
+    const sideNl = document.getElementById('side-nl');
+    if (sideNl) sideNl.style.display = 'none';
 
     // TODO: Send email to GHL webhook when configured
     // fetch('YOUR_GHL_WEBHOOK_URL', {
@@ -77,6 +83,8 @@ const { slug } = Astro.props;
   notNow?.addEventListener('click', () => {
     document.cookie = 'to_gate_dismiss=1; path=/; max-age=604800; SameSite=Lax; Secure';
     if (gate) gate.style.display = 'none';
+    if (locked) locked.style.display = 'block';
+    if (toc) toc.style.display = 'block';
   });
 </script>
 

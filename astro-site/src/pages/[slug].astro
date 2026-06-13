@@ -1,8 +1,8 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import SubscribeGate from '../../components/SubscribeGate.astro';
-import { getPosts, getCategories } from '../../lib/wordpress';
-import { splitGate } from '../../lib/splitGate';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SubscribeGate from '../components/SubscribeGate.astro';
+import { getPosts, getCategories } from '../lib/wordpress';
+import { splitGate } from '../lib/splitGate';
 
 export async function getStaticPaths() {
   const { posts } = await getPosts(100);
@@ -81,6 +81,9 @@ contentHtml = contentHtml.replace(/<h2([^>]*)>/gi, (fullMatch, attrs) => {
 });
 const { free, locked } = splitGate(contentHtml);
 const hasGate = locked.length > 0;
+
+const subscribed = Astro.cookies.get('to_sub')?.value === '1';
+const dismissed = Astro.cookies.get('to_gate_dismiss')?.value === '1';
 ---
 
 <BaseLayout title={title} description={excerpt} activePage="blog">
@@ -94,7 +97,7 @@ const hasGate = locked.length > 0;
     <h1 set:html={post.title.rendered} />
     <div class="meta-row">
       <div class="byline">
-        <span class="avatar" style={`background:${catColor};width:42px;height:42px;font-size:15px`}>{getInitials(author)}</span>
+        <span class="avatar" style="background-image: url('/avatar.jpg'); background-size: cover; background-position: center; width: 42px; height: 42px; border: 1px solid var(--ink-200);"></span>
         <span class="bl-text"><b>{author}</b> · {formatDate(post.date)}</span>
       </div>
       <div class="share">
@@ -135,16 +138,18 @@ const hasGate = locked.length > 0;
         </nav>
       )}
 
-      <div class="nl-card">
-        <span class="badge badge-red" style="margin-bottom:14px"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>Weekly</span>
-        <h3>The Operator's Brief</h3>
-        <p>One data-backed lesson every Thursday. Join 120,000 creators.</p>
-        <form onsubmit="return false">
-          <input type="email" placeholder="you@channel.com" aria-label="Email">
-          <button class="btn btn-primary btn-full" type="submit">Subscribe</button>
-        </form>
-        <span class="note">Free forever. Unsubscribe anytime.</span>
-      </div>
+      {!subscribed && (
+        <div class="nl-card" id="side-nl">
+          <span class="badge badge-red" style="margin-bottom:14px"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>Weekly</span>
+          <h3>The Operator's Brief</h3>
+          <p>One data-backed lesson every Thursday. Join 5,247+ creators.</p>
+          <form onsubmit="return false">
+            <input type="email" placeholder="you@channel.com" aria-label="Email" required>
+            <button class="btn btn-primary btn-full" type="submit">Subscribe</button>
+          </form>
+          <span class="note">Free forever. Unsubscribe anytime.</span>
+        </div>
+      )}
     </aside>
   </div>
 
@@ -154,10 +159,10 @@ const hasGate = locked.length > 0;
     <h2>Get My Free Guide On How To Grow Your Channel To 100k Subscribers</h2>
     <p class="gp">Sign up to get instant access to The AI YouTube Toolkit — 18 tools &amp; templates used by 7-figure operators. Plus weekly growth tactics, case studies, and creator news delivered to your inbox.</p>
     <form class="gift-form" onsubmit="return false">
-      <input type="email" placeholder="Enter your email" aria-label="Email address">
+      <input type="email" placeholder="Enter your email" aria-label="Email address" required>
       <button class="btn btn-primary" type="submit">Join Free</button>
     </form>
-    <div class="gnote">Join 120,000+ creators for free.</div>
+    <div class="gnote">Join 5,247+ creators for free.</div>
   </section>
 
   <!-- READ NEXT -->
@@ -169,7 +174,7 @@ const hasGate = locked.length > 0;
           const rpCat = getCategoryName(rp, categories);
           const rpImg = getFeaturedImage(rp);
           return (
-            <a href={`/blog/${rp.slug}`} class="rn-card">
+            <a href={`/${rp.slug}`} class="rn-card">
               <div class="rc" style={rpImg ? `background-image:url(${rpImg})` : `background:${getCatColor(rpCat)}`}></div>
               <div class="rb"><div class="rt" set:html={rp.title.rendered} /></div>
             </a>
@@ -199,13 +204,30 @@ const obs=new IntersectionObserver(es=>{
 },{rootMargin:'-15% 0px -70% 0px'});
 secs.forEach(s=>s&&obs.observe(s));
 
-// Check subscriber on load (for pages without gate marker)
-function getCk(n){const m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?m[1]:null}
-if(getCk('to_sub')==='1'){
-  const g=document.getElementById('gate');if(g)g.style.display='none';
-  const l=document.getElementById('locked-content');if(l)l.style.display='block';
-  const t=document.getElementById('toc');if(t)t.style.display='block';
+// Check subscriber/dismiss status on load
+function getCk(n: string){const m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?m[1]:null}
+const isSub = getCk('to_sub') === '1';
+const isDismissed = getCk('to_gate_dismiss') === '1';
+
+if (isSub || isDismissed) {
+  const g = document.getElementById('gate'); if (g) g.style.display = 'none';
+  const l = document.getElementById('locked-content'); if (l) l.style.display = 'block';
+  const t = document.getElementById('toc'); if (t) t.style.display = 'block';
+  if (isSub) {
+    const s = document.getElementById('side-nl'); if (s) s.style.display = 'none';
+  }
 }
+
+// Handle sidebar newsletter submit
+const sideForm = document.querySelector('#side-nl form');
+sideForm?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  document.cookie = 'to_sub=1; path=/; max-age=31536000; SameSite=Lax; Secure';
+  const g = document.getElementById('gate'); if (g) g.style.display = 'none';
+  const l = document.getElementById('locked-content'); if (l) l.style.display = 'block';
+  const t = document.getElementById('toc'); if (t) t.style.display = 'block';
+  const s = document.getElementById('side-nl'); if (s) s.style.display = 'none';
+});
 </script>
 
 <style>
@@ -237,13 +259,20 @@ if(getCk('to_sub')==='1'){
 /* layout: content + sidebar */
 .art-grid{display:grid;grid-template-columns:1fr 360px;gap:var(--sp-8);align-items:start;margin-top:var(--sp-5)}
 
-.prose{max-width:none;font-size:20px;line-height:1.85;color:var(--ink-800)}
-.prose p{margin:0 0 var(--sp-5)}
-.prose h2{font-family:var(--font-serif);font-weight:700;font-size:30px;letter-spacing:-.01em;margin:var(--sp-7) 0 var(--sp-4);scroll-margin-top:100px;text-transform:capitalize}
-.prose ul{margin:0 0 var(--sp-5) 22px}
-.prose li{margin-bottom:10px}
-.prose strong{font-weight:700;color:var(--ink-900)}
-.prose a{color:var(--red-600);font-weight:600;border-bottom:1.5px solid var(--red-200)}
+.prose{max-width:none;font-size:21px;line-height:1.85;color:var(--ink-800);font-family:var(--font-serif)}
+.prose :global(p){margin:0 0 28px;line-height:1.85}
+.prose :global(h2){font-family:var(--font-serif);font-weight:700;font-size:32px;letter-spacing:-.01em;margin:56px 0 24px;scroll-margin-top:100px;text-transform:capitalize;line-height:1.3;color:var(--ink-900)}
+.prose :global(h3){font-family:var(--font-serif);font-weight:700;font-size:26px;margin:40px 0 20px;line-height:1.3;color:var(--ink-900)}
+.prose :global(ul), .prose :global(ol){margin:0 0 28px 24px}
+.prose :global(li){margin-bottom:12px;line-height:1.75}
+.prose :global(strong){font-weight:700;color:var(--ink-900)}
+.prose :global(a){color:var(--red-600);font-weight:600;border-bottom:1.5px solid var(--red-200);transition:color .12s var(--ease)}
+.prose :global(a:hover){color:var(--red-700);border-color:var(--red-400)}
+.prose :global(blockquote){border-left:3px solid var(--red-500);padding-left:24px;margin:36px 0;font-style:italic;font-size:23px;line-height:1.6;color:var(--ink-700)}
+.prose :global(blockquote p){margin:0}
+.prose :global(img){max-width:100%;height:auto;border-radius:var(--r-md);margin:32px auto}
+.prose :global(figure){margin:32px 0}
+.prose :global(figcaption){font-size:14px;color:var(--ink-500);text-align:center;margin-top:8px}
 
 /* sidebar */
 .side{position:sticky;top:96px;display:flex;flex-direction:column;gap:var(--sp-5)}
