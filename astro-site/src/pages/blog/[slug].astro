@@ -1,23 +1,20 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import SubscribeGate from '../../components/SubscribeGate.astro';
-import { getPostBySlug, getPosts, getCategories } from '../../lib/wordpress';
+import { getPosts, getCategories } from '../../lib/wordpress';
 import { splitGate } from '../../lib/splitGate';
 
-// This page is SSR (not prerendered) — so we can read cookies
-export const prerender = false;
+export async function getStaticPaths() {
+  const { posts } = await getPosts(100);
+  return posts.map((post: any) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
 
-// Fetch post by slug from URL
-const { slug } = Astro.params;
-const post = await getPostBySlug(slug!);
-if (!post) return Astro.redirect('/blog');
-
+const { post } = Astro.props;
 const categories = await getCategories();
 const { posts: allPosts } = await getPosts(100);
-
-// Check subscriber status from cookie
-const subscribed = Astro.cookies.get('to_sub')?.value === '1';
-const dismissed = Astro.cookies.get('to_gate_dismiss')?.value === '1';
 
 // Split content into free/locked
 const { free, locked } = splitGate(post.content.rendered);
@@ -60,18 +57,13 @@ const catColor = getCatColor(category);
 // Related posts (exclude current)
 const related = allPosts.filter((p: any) => p.id !== post.id).slice(0, 3);
 
-// Extract h2 headings for TOC — from the FULL content (subscribed) or free part only
-const tocSource = subscribed ? post.content.rendered : free;
+// Extract h2 headings for TOC from full content
 const h2Regex = /<h2[^>]*id="([^"]*)"[^>]*>(.*?)<\/h2>/gi;
 const tocItems: {id: string, text: string}[] = [];
 let match;
-while ((match = h2Regex.exec(tocSource)) !== null) {
+while ((match = h2Regex.exec(post.content.rendered)) !== null) {
   tocItems.push({ id: match[1], text: stripHtml(match[2]) });
 }
-
-// Decide whether to show gate
-const showGate = hasGate && !subscribed && !dismissed;
-const showContent = !hasGate || subscribed;
 ---
 
 <BaseLayout title={title} description={excerpt} activePage="blog">
@@ -102,14 +94,23 @@ const showContent = !hasGate || subscribed;
       <!-- Free part — always visible -->
       <Fragment set:html={free} />
 
-      <!-- Gate or locked content -->
-      {showGate && <SubscribeGate slug={slug!} />}
-      {showContent && <Fragment set:html={locked} />}
+      <!-- Gate (hidden by JS if subscribed) -->
+      {hasGate && <SubscribeGate slug={post.slug} />}
+
+      <!-- Locked part — hidden by default, revealed by JS when subscribed -->
+      {hasGate && (
+        <div id="locked-content" style="display:none">
+          <Fragment set:html={locked} />
+        </div>
+      )}
+
+      <!-- If no gate, show all content -->
+      {!hasGate && <Fragment set:html={locked} />}
     </div>
 
     <aside class="side">
-      {subscribed && tocItems.length > 0 && (
-        <nav class="toc" id="toc">
+      {tocItems.length > 0 && (
+        <nav class="toc" id="toc" style={hasGate ? "display:none" : ""}>
           <div class="tt">On This Page</div>
           {tocItems.map((item, i) => (
             <a href={`#${item.id}`} class:list={[{ on: i === 0 }]}>{item.text}</a>
@@ -130,19 +131,17 @@ const showContent = !hasGate || subscribed;
     </aside>
   </div>
 
-  <!-- GIFT / LEAD MAGNET (only for subscribers who see full content) -->
-  {showContent && (
-    <section class="gift-box">
-      <div class="gk"><svg viewBox="0 0 24 24"><path d="M20 7h-2.2a3 3 0 00-4.3-3.9L12 4.2l-1.5-1.1A3 3 0 006.2 7H4a1 1 0 00-1 1v3a1 1 0 001 1v6a2 2 0 002 2h12a2 2 0 002-2v-6a1 1 0 001-1V8a1 1 0 00-1-1zm-5-2a1 1 0 011 1 1 1 0 01-1 1h-1V6a1 1 0 011-1zM9 5a1 1 0 011 1v1H9a1 1 0 010-2zm2 14H6v-6h5zm0-8H5V9h6zm7 8h-5v-6h5zm1-8h-6V9h6z"/></svg>Before You Go</div>
-      <h2>Get My Free Guide On How To Grow Your Channel To 100k Subscribers</h2>
-      <p class="gp">Sign up to get instant access to The AI YouTube Toolkit — 18 tools &amp; templates used by 7-figure operators. Plus weekly growth tactics, case studies, and creator news delivered to your inbox.</p>
-      <form class="gift-form" onsubmit="return false">
-        <input type="email" placeholder="Enter your email" aria-label="Email address">
-        <button class="btn btn-primary" type="submit">Join Free</button>
-      </form>
-      <div class="gnote">Join 120,000+ creators for free.</div>
-    </section>
-  )}
+  <!-- GIFT / LEAD MAGNET -->
+  <section class="gift-box">
+    <div class="gk"><svg viewBox="0 0 24 24"><path d="M20 7h-2.2a3 3 0 00-4.3-3.9L12 4.2l-1.5-1.1A3 3 0 006.2 7H4a1 1 0 00-1 1v3a1 1 0 001 1v6a2 2 0 002 2h12a2 2 0 002-2v-6a1 1 0 001-1V8a1 1 0 00-1-1zm-5-2a1 1 0 011 1 1 1 0 01-1 1h-1V6a1 1 0 011-1zM9 5a1 1 0 011 1v1H9a1 1 0 010-2zm2 14H6v-6h5zm0-8H5V9h6zm7 8h-5v-6h5zm1-8h-6V9h6z"/></svg>Before You Go</div>
+    <h2>Get My Free Guide On How To Grow Your Channel To 100k Subscribers</h2>
+    <p class="gp">Sign up to get instant access to The AI YouTube Toolkit — 18 tools &amp; templates used by 7-figure operators. Plus weekly growth tactics, case studies, and creator news delivered to your inbox.</p>
+    <form class="gift-form" onsubmit="return false">
+      <input type="email" placeholder="Enter your email" aria-label="Email address">
+      <button class="btn btn-primary" type="submit">Join Free</button>
+    </form>
+    <div class="gnote">Join 120,000+ creators for free.</div>
+  </section>
 
   <!-- READ NEXT -->
   {related.length > 0 && (
@@ -166,6 +165,7 @@ const showContent = !hasGate || subscribed;
 </BaseLayout>
 
 <script>
+// Progress bar
 const bar=document.getElementById('progress');
 const doc=document.documentElement;
 function onScroll(){
@@ -174,12 +174,21 @@ function onScroll(){
 }
 document.addEventListener('scroll',onScroll,{passive:true});onScroll();
 
+// TOC highlight
 const links=[...document.querySelectorAll('#toc a')];
 const secs=links.map(l=>document.querySelector(l.getAttribute('href')!));
 const obs=new IntersectionObserver(es=>{
   es.forEach(en=>{if(en.isIntersecting){const id='#'+en.target.id;links.forEach(l=>l.classList.toggle('on',l.getAttribute('href')===id));}});
 },{rootMargin:'-15% 0px -70% 0px'});
 secs.forEach(s=>s&&obs.observe(s));
+
+// Check subscriber on load (for pages without gate marker)
+function getCk(n){const m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?m[1]:null}
+if(getCk('to_sub')==='1'){
+  const g=document.getElementById('gate');if(g)g.style.display='none';
+  const l=document.getElementById('locked-content');if(l)l.style.display='block';
+  const t=document.getElementById('toc');if(t)t.style.display='block';
+}
 </script>
 
 <style>

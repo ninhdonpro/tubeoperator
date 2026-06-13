@@ -1,7 +1,8 @@
 ---
 /**
- * Subscribe Gate component — the wall UI
- * Shows email form + "Not now" link over locked content
+ * Subscribe Gate — client-side soft gate
+ * All content is in the HTML but locked part is hidden via JS.
+ * Cookie to_sub=1 → no gate, full content visible.
  */
 interface Props {
   slug: string;
@@ -24,51 +25,58 @@ const { slug } = Astro.props;
 </div>
 
 <script define:vars={{ slug }}>
+  // Cookie helpers
+  function getCookie(name) {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? m[1] : null;
+  }
+
+  const gate = document.getElementById('gate');
+  const locked = document.getElementById('locked-content');
+  const toc = document.getElementById('toc');
+
+  // Already subscribed → remove gate, show content
+  if (getCookie('to_sub') === '1') {
+    if (gate) gate.style.display = 'none';
+    if (locked) locked.style.display = 'block';
+    if (toc) toc.style.display = 'block';
+  }
+  // Dismissed → hide gate but keep content locked
+  else if (getCookie('to_gate_dismiss') === '1') {
+    if (gate) gate.style.display = 'none';
+  }
+
+  // Subscribe form
   const form = document.getElementById('gate-form');
   const emailInput = document.getElementById('gate-email');
   const btn = document.getElementById('gate-btn');
   const errorEl = document.getElementById('gate-error');
-  const gate = document.getElementById('gate');
   const notNow = document.getElementById('g-not');
 
-  form.addEventListener('submit', async (e) => {
+  form?.addEventListener('submit', (e) => {
     e.preventDefault();
-    const email = emailInput.value.trim();
+    const email = emailInput?.value?.trim();
     if (!email) return;
 
-    btn.textContent = 'Subscribing…';
-    btn.disabled = true;
-    errorEl.textContent = '';
+    // Set subscriber cookie (1 year)
+    document.cookie = 'to_sub=1; path=/; max-age=31536000; SameSite=Lax; Secure';
 
-    try {
-      const res = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, slug }),
-      });
-      const data = await res.json();
+    // Show locked content
+    if (locked) locked.style.display = 'block';
+    if (toc) toc.style.display = 'block';
+    if (gate) gate.style.display = 'none';
 
-      if (data.ok) {
-        // Reload to get full content from SSR (cookie is now set)
-        window.location.reload();
-      } else {
-        errorEl.textContent = data.error === 'invalid_email'
-          ? 'Please enter a valid email address.'
-          : 'Something went wrong. Please try again.';
-        btn.textContent = 'Subscribe';
-        btn.disabled = false;
-      }
-    } catch (err) {
-      errorEl.textContent = 'Network error. Please try again.';
-      btn.textContent = 'Subscribe';
-      btn.disabled = false;
-    }
+    // TODO: Send email to GHL webhook when configured
+    // fetch('YOUR_GHL_WEBHOOK_URL', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ email, slug, source: 'blog-gate' }),
+    // });
   });
 
-  notNow.addEventListener('click', () => {
-    // Set dismiss cookie (7 days, client-readable)
+  notNow?.addEventListener('click', () => {
     document.cookie = 'to_gate_dismiss=1; path=/; max-age=604800; SameSite=Lax; Secure';
-    gate.style.display = 'none';
+    if (gate) gate.style.display = 'none';
   });
 </script>
 
