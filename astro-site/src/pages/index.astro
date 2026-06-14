@@ -90,7 +90,7 @@ const embedLayout = "{'id':'INLINE'}";
       console.log('[nl-form] Response body:', text);
 
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
-      window.location.href = '/welcome/';
+      window.location.href = '/survey?email=' + encodeURIComponent(email);
     } catch (err) {
       console.error('[nl-form] Error:', err);
       if (nlError) nlError.textContent = 'Something went wrong. Please try again.';
