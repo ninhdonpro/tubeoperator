@@ -82,7 +82,7 @@ tubeoperator/
 <!-- AUTO-MANAGED: patterns -->
 ## Detected Patterns
 
-- **Global CSS tokens:** All design tokens (colors, spacing, radii, shadows, fonts) are declared in `BaseLayout.astro`'s `<style is:global>` and must match `design.md`. Never hardcode color/spacing values in components.
+- **Global CSS tokens:** All design tokens (colors, spacing, radii, shadows, fonts) are declared in `BaseLayout.astro`'s `<style is:global>` and must match `design.md`. Never hardcode color/spacing values in components. The global `body` rule sets the typography baseline: `font-family: var(--font-body)`, `font-weight: 500` (medium weight — not the browser default 400), `font-size: 18px`, `line-height: 1.7`, and `-webkit-font-smoothing: antialiased`.
 - **WP REST API with `_embed`:** All fetch calls in `wordpress.ts` use `?_embed` to inline featured media and author data in one request.
 - **Minimal header variant:** Pages like `/survey` pass `minimalHeader={true}` to `BaseLayout` to suppress the full nav.
 - **Gate paywall:** `splitGate.ts` splits post HTML at `<!-- gate -->`; the gate UI is in `SubscribeGate.astro`. Client-side JS reveals locked content when either `to_sub=1` or `to_gate_dismiss=1` cookie is present.
