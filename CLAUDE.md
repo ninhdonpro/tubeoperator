@@ -11,8 +11,13 @@ TubeOperator is a creator education platform for YouTube + AI. It is a headless 
 ## Build & Development Commands
 
 ```bash
-# Dev server (localhost:4321)
+# Dev server (localhost:4321) — Astro only, no Pages Functions
 cd astro-site && npm run dev
+
+# Dev server with Pages Functions — Wrangler listens on :4321 (what you visit),
+# proxies to Astro on :4322 (internal). Separates ports to avoid bind conflict.
+cd astro-site && npm run pages:dev
+# Equivalent: wrangler pages dev --proxy 4322 --port 4321 -- astro dev --port 4322
 
 # Production build
 cd astro-site && npm run build
@@ -32,7 +37,7 @@ cd astro-site && npx wrangler pages deploy dist
 - **Runtime API:** Cloudflare Pages Functions (`functions/` dir at astro-site root) — served by Cloudflare at runtime, no Astro adapter needed
 - **i18n:** Polylang Pro on the WP side; language prefix routing handled by WP REST API queries
 - **Styling:** Component-scoped `<style>` in each `.astro` file + one global `<style is:global>` in `BaseLayout.astro`
-- **Env vars:** `WP_API_URL` (build-time WP API); `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID`, `GHL_LANGUAGE_FIELD_ID` (runtime, required by `/api/subscribe`). Copy `.env.example` → `astro-site/.env` for local dev; set in Cloudflare dashboard for production. `GHL_LANGUAGE_FIELD_ID` is optional — if unset, language custom field is skipped.
+- **Env vars:** `WP_API_URL` (build-time WP API); `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID`, `GHL_LANGUAGE_FIELD_ID` (runtime, required by `/api/subscribe`). For local dev: build-time vars go in `astro-site/.env`; runtime secrets for Pages Functions go in `astro-site/.dev.vars` (Wrangler reads this automatically). Set all vars in the Cloudflare dashboard for production. `GHL_LANGUAGE_FIELD_ID` is optional — if unset, language custom field is skipped.
 
 ```
 tubeoperator/
@@ -87,7 +92,7 @@ tubeoperator/
 - **Author avatar CDN fallback:** WP gravatar URLs containing `d=mm`, `d=blank`, or `d=identicon` (default/missing avatar) fall back to `https://cdn.tubeoperator.com/web/2026/06/avatar.png`.
 - **catColors lookup table:** Category-to-color mapping `{ Algorithm, Thumbnails, Editing, Scripting, Growth, Monetization }` is duplicated inline in both `[slug].astro` and `blog/index.astro` — not yet extracted to a shared helper.
 - **Native subscribe forms (active pattern):** Both `index.astro` (homepage hero `.nl-form`) and `SubscribeGate.astro` (post gate `.gate-form`) use native `<form>` elements that POST to `/api/subscribe`. Homepage sends `{ email, source: 'homepage-newsletter', language: navigator.language }` and redirects to `/welcome/` on success. Gate sends `{ email, source: 'blog-gate', language: navigator.language }`, sets `to_sub=1` cookie, and reveals locked content. GHL iframe blocks are preserved as HTML comments in both files but are NOT active.
-- **`/api/subscribe` endpoint:** `functions/api/subscribe.js` (Cloudflare Pages Function) — validates email, then POSTs to `https://services.leadconnectorhq.com/contacts/` (GHL REST API, `Version: v3` header) using `GHL_PRIVATE_TOKEN` and `GHL_LOCATION_ID`. Includes `tags: ['newsletter subscriber']`, `country` from `CF-IPCountry` header (Cloudflare-injected, absent in local dev), and optionally `customFields` with `language` value when `GHL_LANGUAGE_FIELD_ID` is set. Returns `{ success: true }` or `{ error }` JSON. Moved from `src/pages/api/subscribe.ts` to avoid ASSETS binding conflict with Cloudflare.
+- **`/api/subscribe` endpoint:** `functions/api/subscribe.js` (Cloudflare Pages Function) — validates email, then POSTs to `https://services.leadconnectorhq.com/contacts/` (GHL REST API, `Version: v3` header) using `GHL_PRIVATE_TOKEN` and `GHL_LOCATION_ID`. Includes `tags: ['newsletter subscriber']`, `country` from `CF-IPCountry` header (Cloudflare-injected, absent in local dev), and optionally `customFields` with `language` value when `GHL_LANGUAGE_FIELD_ID` is set. Returns `{ success: true }` or `{ error }` JSON. Moved from `src/pages/api/subscribe.ts` to avoid ASSETS binding conflict with Cloudflare. When GHL returns HTTP 400 with `"duplicated"` in the response body (already-subscribed contact), the endpoint treats this as `{ success: true }` — duplicate submissions do not surface an error to the user.
 - **GHL iframe embeds (survey only):** `survey.astro` still uses an active GHL iframe widget from `api.automator.vn` — the `is:inline` script and `data-layout` frontmatter string pattern applies there.
 
 <!-- END AUTO-MANAGED -->
@@ -104,4 +109,7 @@ Do not invent new color values, font sizes, or spacing — use the tokens define
 - **`catColors` is duplicated.** The category-to-hex mapping exists identically in both `[slug].astro` and `blog/index.astro`. If adding a new category color, update both files until this is extracted to a shared lib.
 - **Two gate unlock cookies.** Locked post content is revealed when either `to_sub=1` OR `to_gate_dismiss=1` is set — both must be checked in any gate-related client-side logic.
 - **Author avatar from WP may be a gravatar placeholder.** Always apply the CDN fallback check (`d=mm`, `d=blank`, `d=identicon`) before rendering author avatars.
+- **Two local env files for Pages Functions dev.** `astro-site/.env` holds build-time vars (e.g. `WP_API_URL`). `astro-site/.dev.vars` holds runtime secrets consumed by Pages Functions (e.g. `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID`). Both are gitignored. Use `npm run pages:dev` (not `npm run dev`) when you need the `/api/subscribe` function to work locally — plain `astro dev` does not load `.dev.vars` or serve `functions/`. The `pages:dev` script binds Wrangler on port 4321 (what you open in the browser) and Astro internally on port 4322 — this two-port split avoids a bind conflict where both processes previously tried to use 4321.
+- **Duplicate subscribers are silently accepted.** `/api/subscribe` checks for GHL's HTTP 400 `"duplicated"` error and returns `{ success: true }` instead of surfacing it as an error. This means the homepage redirect to `/welcome/` and the gate cookie+reveal flow both complete normally for already-subscribed emails — no special handling needed on the client side.
+- **Agent/task artifacts are gitignored.** `astro-site/.gitignore` excludes `spec.md`, `task.md`, `./design`, and `.agent` — files generated by Claude Code or other AI tooling during development sessions. Do not commit these.
 <!-- END MANUAL -->

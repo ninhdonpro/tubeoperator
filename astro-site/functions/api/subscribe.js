@@ -56,6 +56,10 @@ export async function onRequestPost({ request, env }) {
 
     if (!ghlRes.ok) {
       const text = await ghlRes.text();
+      // Treat duplicate contact (already subscribed) as success
+      if (ghlRes.status === 400 && text.includes('duplicated')) {
+        return Response.json({ success: true });
+      }
       console.error('GHL API error', ghlRes.status, text);
       return Response.json({ error: 'Subscription failed' }, { status: 502 });
     }
