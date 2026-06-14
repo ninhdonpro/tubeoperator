@@ -86,16 +86,20 @@ const gateEmbedLayout = "{'id':'INLINE'}";
     if (errorEl) errorEl.textContent = '';
 
     try {
+      const payload = { email, source: 'blog-gate', language: navigator.language };
+      console.log('[gate-form] Sending:', payload);
+
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          source: 'blog-gate',
-          language: navigator.language,
-        }),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error();
+
+      const text = await res.text();
+      console.log('[gate-form] Response status:', res.status, 'ok:', res.ok);
+      console.log('[gate-form] Response body:', text);
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
 
       // Set subscriber cookie (1 year) — prevents gate on future visits
       document.cookie = 'to_sub=1; path=/; max-age=31536000; SameSite=Lax; Secure';
@@ -109,7 +113,8 @@ const gateEmbedLayout = "{'id':'INLINE'}";
       if (toc) toc.style.display = 'block';
       if (gate) gate.style.display = 'none';
       if (sideNl) sideNl.style.display = 'none';
-    } catch {
+    } catch (err) {
+      console.error('[gate-form] Error:', err);
       if (errorEl) errorEl.textContent = 'Something went wrong. Please try again.';
       if (btn) { btn.disabled = false; btn.textContent = 'Subscribe'; }
     }

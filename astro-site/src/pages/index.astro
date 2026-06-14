@@ -76,18 +76,23 @@ const embedLayout = "{'id':'INLINE'}";
     if (nlError) nlError.textContent = '';
 
     try {
+      const payload = { email, source: 'homepage-newsletter', language: navigator.language };
+      console.log('[nl-form] Sending:', payload);
+
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          source: 'homepage-newsletter',
-          language: navigator.language,
-        }),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error();
+
+      const text = await res.text();
+      console.log('[nl-form] Response status:', res.status, 'ok:', res.ok);
+      console.log('[nl-form] Response body:', text);
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
       window.location.href = '/welcome/';
-    } catch {
+    } catch (err) {
+      console.error('[nl-form] Error:', err);
       if (nlError) nlError.textContent = 'Something went wrong. Please try again.';
       (nlBtn as HTMLButtonElement).disabled = false;
       (nlBtn as HTMLButtonElement).textContent = 'Show me how';
