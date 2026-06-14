@@ -1,0 +1,7 @@
+# Claude Code auto-memory
+.claude/auto-memory/dirty-files*
+
+# Environment variables (real values — never commit)
+.env
+.env.local
+.env.*.local

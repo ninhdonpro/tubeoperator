@@ -8,6 +8,7 @@ interface Props {
   slug: string;
 }
 const { slug } = Astro.props;
+const gateEmbedLayout = "{'id':'INLINE'}";
 ---
 
 <div class="gate" id="gate">
@@ -15,11 +16,37 @@ const { slug } = Astro.props;
   <div class="gate-box">
     <div class="gate-title">Subscribe To Keep Reading</div>
     <p class="g-sub">This content is free, but you must be subscribed to keep reading.</p>
+
+    <!-- GHL iframe embed (disabled — native gate-form active below)
+    <div class="gate-embed">
+      <iframe
+        src="https://api.automator.vn/widget/form/nPFu6gucPwKBrLE9gYBN"
+        style="height:400px;border:none;border-radius:0px"
+        id="inline-nPFu6gucPwKBrLE9gYBN"
+        data-layout="{'id':'INLINE'}"
+        data-trigger-type="alwaysShow"
+        data-trigger-value=""
+        data-activation-type="alwaysActivated"
+        data-activation-value=""
+        data-deactivation-type="neverDeactivate"
+        data-deactivation-value=""
+        data-form-name="Blog Post Gate! "
+        data-height="400"
+        data-layout-iframe-id="inline-nPFu6gucPwKBrLE9gYBN"
+        data-form-id="nPFu6gucPwKBrLE9gYBN"
+        title="Blog Post Gate! "
+        scrolling="no"
+      ></iframe>
+    </div>
+    <script src="https://api.automator.vn/js/form_embed.js"></script>
+    -->
+
     <form class="gate-form" id="gate-form">
       <input type="email" placeholder="Email" aria-label="Email address" required id="gate-email">
       <button class="btn btn-primary" type="submit" id="gate-btn">Subscribe</button>
     </form>
     <div class="gate-error" id="gate-error"></div>
+
     <button class="g-not" id="g-not" type="button">Not now</button>
   </div>
 </div>
@@ -50,31 +77,42 @@ const { slug } = Astro.props;
   const errorEl = document.getElementById('gate-error');
   const notNow = document.getElementById('g-not');
 
-  form?.addEventListener('submit', (e) => {
+  form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = emailInput?.value?.trim();
     if (!email) return;
 
-    // Set subscriber cookie (1 year)
-    document.cookie = 'to_sub=1; path=/; max-age=31536000; SameSite=Lax; Secure';
+    if (btn) { btn.disabled = true; btn.textContent = 'Subscribing…'; }
+    if (errorEl) errorEl.textContent = '';
 
-    // Query elements dynamically to ensure they are found after full DOM load
-    const gate = document.getElementById('gate');
-    const locked = document.getElementById('locked-content');
-    const toc = document.getElementById('toc');
-    const sideNl = document.getElementById('side-nl');
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          source: 'blog-gate',
+          language: navigator.language,
+        }),
+      });
+      if (!res.ok) throw new Error();
 
-    if (locked) locked.style.display = 'block';
-    if (toc) toc.style.display = 'block';
-    if (gate) gate.style.display = 'none';
-    if (sideNl) sideNl.style.display = 'none';
+      // Set subscriber cookie (1 year) — prevents gate on future visits
+      document.cookie = 'to_sub=1; path=/; max-age=31536000; SameSite=Lax; Secure';
 
-    // TODO: Send email to GHL webhook when configured
-    // fetch('YOUR_GHL_WEBHOOK_URL', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ email, slug, source: 'blog-gate' }),
-    // });
+      const gate = document.getElementById('gate');
+      const locked = document.getElementById('locked-content');
+      const toc = document.getElementById('toc');
+      const sideNl = document.getElementById('side-nl');
+
+      if (locked) locked.style.display = 'block';
+      if (toc) toc.style.display = 'block';
+      if (gate) gate.style.display = 'none';
+      if (sideNl) sideNl.style.display = 'none';
+    } catch {
+      if (errorEl) errorEl.textContent = 'Something went wrong. Please try again.';
+      if (btn) { btn.disabled = false; btn.textContent = 'Subscribe'; }
+    }
   });
 
   notNow?.addEventListener('click', () => {
@@ -99,6 +137,8 @@ const { slug } = Astro.props;
 .gate-form input{flex:1;font-family:var(--font-body);font-size:16px;line-height:1;padding:16px;border:1.5px solid var(--ink-200);border-radius:var(--r-sm);background:#fff;color:var(--ink-900)}
 .gate-form input:focus{outline:none;border-color:var(--red-500);box-shadow:0 0 0 3px var(--red-100)}
 .gate-error{font-size:14px;color:var(--red-600);margin-top:10px;min-height:20px}
+.gate-embed{height:160px;overflow:hidden;margin:var(--sp-5) auto 0}
+.gate-embed iframe{width:calc(100% + 17px)}
 .g-not{display:block;margin:12px auto 0;background:none;border:none;color:var(--ink-400);text-decoration:underline;cursor:pointer;font-size:14px;font-family:var(--font-body)}
 .g-not:hover{color:var(--ink-700)}
 </style>
