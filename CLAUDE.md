@@ -31,7 +31,7 @@ cd astro-site && npx wrangler pages deploy dist
 <!-- AUTO-MANAGED: architecture -->
 ## Architecture
 
-- **Framework:** Astro 6 (SSG) — purely static (`output: 'static'`, no adapter); `trailingSlash: 'never'`, `build.format: 'file'`
+- **Framework:** Astro 6 (SSG) — purely static (`output: 'static'`, no adapter); `trailingSlash: 'always'`, `build.format: 'directory'`
 - **CMS:** WordPress (headless) — data fetched at build via `WP_API_URL` env var through `src/lib/wordpress.ts`
 - **Hosting:** Cloudflare Pages (`wrangler.jsonc` → `pages_build_output_dir: ./dist`)
 - **Runtime API:** Cloudflare Pages Functions (`functions/` dir at astro-site root) — served by Cloudflare at runtime, no Astro adapter needed
