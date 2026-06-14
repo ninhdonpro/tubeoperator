@@ -7,9 +7,9 @@ export default defineConfig({
   site: 'https://tubeoperator.com',
   integrations: [sitemap()],
   output: 'static',
-  trailingSlash: 'never',
+  trailingSlash: 'always',
   build: {
-    format: 'file'
+    format: 'directory'
   }
 });
 
