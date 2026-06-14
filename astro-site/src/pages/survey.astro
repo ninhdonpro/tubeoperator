@@ -1,0 +1,53 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Complete Your Subscription — TubeOperator" description="Answer a few quick questions so we can send you the most relevant YouTube growth insights." activePage="">
+
+<section class="survey-page">
+  <div class="stop-icon">🛑</div>
+  <h1>WAIT! Your Free Subscription<br class="br-desktop"> Is Not Yet Complete</h1>
+  <p class="sub">
+    Answer these 4 quick questions so I can send you the most relevant
+    YouTube growth insights, AI tools, and strategies for <em>your</em> specific channel goals.
+  </p>
+
+  <div class="arrow-down">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 13l7 7 7-7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div class="survey-embed">
+    <iframe
+      src="https://api.automator.vn/widget/survey/kjLBhiBQl4TfrqHlF6AD"
+      style="border:none;width:100%;"
+      scrolling="no"
+      id="kjLBhiBQl4TfrqHlF6AD"
+      title="survey"
+    ></iframe>
+  </div>
+  <script is:inline src="https://api.automator.vn/js/form_embed.js"></script>
+</section>
+
+</BaseLayout>
+
+<style>
+.survey-page{max-width:860px;margin:0 auto;padding:80px 48px 120px;text-align:center}
+
+.stop-icon{font-size:52px;line-height:1;margin-bottom:var(--sp-4)}
+
+h1{font-family:var(--font-display);font-weight:800;font-size:40px;line-height:1.2;letter-spacing:-.025em;margin:0 0 var(--sp-5);color:var(--ink-900)}
+
+.sub{font-size:20px;color:var(--ink-600);line-height:1.65;max-width:64ch;margin:0 auto var(--sp-6)}
+.sub em{font-style:normal;font-weight:700;color:var(--ink-900)}
+
+.arrow-down{display:flex;justify-content:center;margin-bottom:var(--sp-6)}
+.arrow-down svg{width:36px;height:36px;color:var(--red-500)}
+
+.survey-embed{width:100%;max-width:860px;margin:0 auto}
+
+@media(max-width:860px){
+  .survey-page{padding:56px 24px 80px}
+  h1{font-size:28px}
+  .br-desktop{display:none}
+}
+</style>

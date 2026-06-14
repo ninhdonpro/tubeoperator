@@ -1,0 +1,72 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Page Not Found — TubeOperator" description="This page doesn't exist, but we found something more valuable for you." activePage="">
+
+<section class="not-found">
+  <div class="eyebrow">— 404 · Page Not Found —</div>
+
+  <h1>
+    <span class="faded">Oops, This Page Has Moved...</span><br>
+    But You Just Found<br class="br-desktop"> Something More Valuable.
+  </h1>
+
+  <p class="sub">
+    Instead of a boring error message, I'd like to give you something genuinely useful:
+    a free weekly newsletter on <strong>how everyday people build 7-figure YouTube channels
+    from scratch — using AI.</strong>
+  </p>
+
+  <ul class="benefits">
+    <li>Real case studies from creators hitting 7-figure revenue</li>
+    <li>AI tools &amp; strategies to grow your channel faster</li>
+    <li>100% free — unsubscribe anytime</li>
+  </ul>
+
+  <div class="actions">
+    <a href="/" class="btn btn-primary btn-lg-custom">Get Free Newsletter &nbsp;→</a>
+    <a href="/" class="btn btn-outline btn-lg-custom">← Back to Home</a>
+  </div>
+
+  <p class="trust"><b>10,000+</b> YouTube creators &amp; operators reading every week.</p>
+</section>
+
+</BaseLayout>
+
+<style>
+.not-found{max-width:740px;margin:0 auto;padding:96px 48px 120px;text-align:center}
+
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--red-600);margin-bottom:var(--sp-6)}
+
+h1{font-family:var(--font-display);font-weight:800;font-size:52px;line-height:1.18;letter-spacing:-.03em;margin:0 0 var(--sp-6)}
+.faded{color:var(--ink-300)}
+
+.sub{font-size:20px;color:var(--ink-600);line-height:1.65;max-width:54ch;margin:0 auto var(--sp-6)}
+.sub strong{color:var(--ink-900);font-weight:700}
+
+.benefits{list-style:none;padding:0;margin:0 auto var(--sp-7);display:inline-flex;flex-direction:column;gap:var(--sp-3);text-align:left}
+.benefits li{font-size:17px;color:var(--ink-700);display:flex;align-items:center;gap:10px}
+.benefits li::before{
+  content:"";
+  width:22px;height:22px;flex-shrink:0;border-radius:50%;
+  background:var(--red-500)
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 12l4 4 8-8' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center/18px no-repeat
+}
+
+.actions{display:flex;align-items:center;justify-content:center;gap:var(--sp-4);flex-wrap:wrap;margin-bottom:var(--sp-6)}
+.btn-lg-custom{padding:16px 32px;font-size:17px}
+
+.trust{font-size:15px;color:var(--ink-500)}
+.trust b{color:var(--ink-800)}
+
+@media(max-width:860px){
+  .not-found{padding:64px 24px 80px}
+  h1{font-size:36px}
+  .br-desktop{display:none}
+  .actions{flex-direction:column}
+  .btn-lg-custom{width:100%;text-align:center}
+}
+@media(max-width:520px){h1{font-size:28px}}
+</style>
