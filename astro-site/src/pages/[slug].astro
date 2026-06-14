@@ -84,6 +84,9 @@ const hasGate = locked.length > 0;
 
 const subscribed = Astro.cookies.get('to_sub')?.value === '1';
 const dismissed = Astro.cookies.get('to_gate_dismiss')?.value === '1';
+const authorData = post._embedded?.author?.[0] as any;
+const authorBio = authorData?.description || '';
+const authorRole = authorData?.meta?.title || authorData?.meta?.position || authorData?.meta?.job_title || null;
 ---
 
 <BaseLayout title={title} description={excerpt} activePage="blog">
@@ -101,36 +104,57 @@ const dismissed = Astro.cookies.get('to_gate_dismiss')?.value === '1';
         <span class="bl-text"><b>{author}</b> · {formatDate(post.date)}</span>
       </div>
       <div class="share">
-        <a href="#" aria-label="Share on X"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
-        <a href="#" aria-label="Share on Facebook"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg></a>
-        <a href="#" aria-label="Copy link"><svg viewBox="0 0 24 24"><path d="M3.9 12a3.1 3.1 0 013.1-3.1h4V7h-4a5 5 0 100 10h4v-1.9h-4A3.1 3.1 0 013.9 12zM8 13h8v-2H8v2zm9-6h-4v1.9h4a3.1 3.1 0 010 6.2h-4V17h4a5 5 0 100-10z"/></svg></a>
+        <a href="#" aria-label="Share on Facebook" data-share="fb"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg></a>
+        <a href="#" aria-label="Share on LinkedIn" data-share="li"><svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg></a>
+        <a href="#" aria-label="Share on X / Twitter" data-share="tw"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
+        <a href="#" aria-label="Share on Pinterest" data-share="pi"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-3.6 19.3c-.1-.8-.2-2.1.1-3 .3-1.1 1.8-7.8 1.8-7.8s-.5-.9-.5-2.3c0-2.2 1.3-3.8 2.9-3.8 1.4 0 2 1 2 2.3 0 1.4-.9 3.5-1.4 5.5-.4 1.6.8 2.9 2.4 2.9 2.8 0 4.9-3 4.9-7.3 0-3.8-2.8-6.5-6.7-6.5-4.6 0-7.3 3.4-7.3 7 0 1.4.5 2.8 1.3 3.6.1.2.1.3.1.4-.1.6-.4 1.9-.5 2.1-.1.3-.3.4-.5.3-1.9-.9-3.1-3.7-3.1-6 0-4.8 3.5-9.2 10.2-9.2 5.3 0 9.5 3.8 9.5 8.8 0 5.3-3.3 9.5-7.9 9.5-1.5 0-3-.8-3.5-1.7l-.9 3.6c-.3 1.3-1.2 2.9-1.8 3.9A10 10 0 0022 12 10 10 0 0012 2z"/></svg></a>
+        <a href="#" aria-label="Copy link" data-share="copy" id="copy-link"><svg viewBox="0 0 24 24"><path d="M3.9 12a3.1 3.1 0 013.1-3.1h4V7h-4a5 5 0 100 10h4v-1.9h-4A3.1 3.1 0 013.9 12zM8 13h8v-2H8v2zm9-6h-4v1.9h4a3.1 3.1 0 010 6.2h-4V17h4a5 5 0 100-10z"/></svg></a>
       </div>
     </div>
   </header>
 
   <!-- GRID: content + sidebar -->
   <div class="art-grid">
-    <div class="prose">
-      <!-- Free part — always visible -->
-      <Fragment set:html={free} />
+    <div class="art-main">
+      <div class="prose">
+        <!-- Free part — always visible -->
+        <Fragment set:html={free} />
 
-      <!-- Gate (hidden by JS if subscribed) -->
-      {hasGate && <SubscribeGate slug={post.slug} />}
+        <!-- Gate (hidden by JS if subscribed) -->
+        {hasGate && <SubscribeGate slug={post.slug} />}
 
-      <!-- Locked part — hidden by default, revealed by JS when subscribed -->
-      {hasGate && (
-        <div id="locked-content" style="display:none">
-          <Fragment set:html={locked} />
+        <!-- Locked part — hidden by default, revealed by JS when subscribed -->
+        {hasGate && (
+          <div id="locked-content" style="display:none">
+            <Fragment set:html={locked} />
+          </div>
+        )}
+
+        <!-- If no gate, show all content -->
+        {!hasGate && <Fragment set:html={locked} />}
+      </div>
+
+      <!-- AUTHOR PROFILE -->
+      <div class="author-profile">
+        <div class="au-av">{getInitials(author)}</div>
+        <div class="au-body">
+          <div class="au-name">{author}</div>
+          {authorRole && <div class="au-role">{authorRole}</div>}
+          {authorBio && <p class="au-bio" set:html={authorBio} />}
+          <div class="au-socials">
+            <a href="#" aria-label="Facebook" class="au-soc"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg></a>
+            <a href="#" aria-label="YouTube" class="au-soc"><svg viewBox="0 0 24 24"><path d="M21.6 7.2c-.2-1-1-1.7-2-2C17.8 4.8 12 4.8 12 4.8s-5.8 0-7.6.4c-1 .3-1.8 1-2 2C2 9 2 12 2 12s0 3 .4 4.8c.2 1 1 1.7 2 2 1.8.4 7.6.4 7.6.4s5.8 0 7.6-.4c1-.3 1.8-1 2-2C22 15 22 12 22 12s0-3-.4-4.8zM10 15.5v-7l6 3.5-6 3.5z"/></svg></a>
+            <a href="#" aria-label="TikTok" class="au-soc"><svg viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.66a8.2 8.2 0 004.84 1.55V6.76a4.85 4.85 0 01-1.07-.07z"/></svg></a>
+            <a href="#" aria-label="LinkedIn" class="au-soc"><svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg></a>
+            <a href="#" aria-label="X" class="au-soc"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
+          </div>
         </div>
-      )}
-
-      <!-- If no gate, show all content -->
-      {!hasGate && <Fragment set:html={locked} />}
+      </div>
     </div>
 
     <aside class="side">
       {tocItems.length > 0 && (
-        <nav class="toc" id="toc" style={hasGate ? "display:none" : ""}>
+        <nav class="toc" id="toc">
           <div class="tt">On This Page</div>
           {tocItems.map((item, i) => (
             <a href={`#${item.id}`} class:list={[{ on: i === 0 }]}>{item.text}</a>
@@ -138,23 +162,6 @@ const dismissed = Astro.cookies.get('to_gate_dismiss')?.value === '1';
         </nav>
       )}
 
-      {!subscribed && (
-        <div class="nl-card" id="side-nl">
-          <script is:inline>
-            if (document.cookie.match(/(?:^|; )to_sub=1/)) {
-              document.getElementById('side-nl').style.display = 'none';
-            }
-          </script>
-          <span class="badge badge-red" style="margin-bottom:14px"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>Weekly</span>
-          <h3>The Operator's Brief</h3>
-          <p>One data-backed lesson every Thursday. Join 5,247+ creators.</p>
-          <form onsubmit="return false">
-            <input type="email" placeholder="you@channel.com" aria-label="Email" required>
-            <button class="btn btn-primary btn-full" type="submit">Subscribe</button>
-          </form>
-          <span class="note">Free forever. Unsubscribe anytime.</span>
-        </div>
-      )}
     </aside>
   </div>
 
@@ -192,14 +199,44 @@ const dismissed = Astro.cookies.get('to_gate_dismiss')?.value === '1';
 </BaseLayout>
 
 <script>
-// Progress bar
+// Progress bar — 100% when article bottom reaches viewport
 const bar=document.getElementById('progress');
 const doc=document.documentElement;
+const artEl=document.querySelector('article.article') as HTMLElement|null;
 function onScroll(){
-  const h=doc.scrollHeight-doc.clientHeight;
-  if(bar) bar.style.width=(h>0?(doc.scrollTop/h)*100:0)+'%';
+  if(!bar||!artEl) return;
+  const start=artEl.offsetTop;
+  const end=artEl.offsetTop+artEl.offsetHeight-doc.clientHeight;
+  const pct=end>start?Math.max(0,Math.min(100,((doc.scrollTop-start)/(end-start))*100)):0;
+  bar.style.width=pct+'%';
 }
 document.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+// Share buttons
+document.querySelectorAll('[data-share]').forEach(btn=>{
+  btn.addEventListener('click',(e)=>{
+    e.preventDefault();
+    const url=encodeURIComponent(window.location.href);
+    const txt=encodeURIComponent(document.title);
+    const map:Record<string,string>={
+      fb:`https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      li:`https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+      tw:`https://twitter.com/intent/tweet?url=${url}&text=${txt}`,
+      pi:`https://pinterest.com/pin/create/button/?url=${url}&description=${txt}`,
+    };
+    const key=(btn as HTMLElement).dataset.share||'';
+    if(key==='copy'){
+      navigator.clipboard.writeText(window.location.href).then(()=>{
+        const el=btn as HTMLElement;
+        el.setAttribute('aria-label','Copied!');
+        el.style.color='var(--red-500)';
+        setTimeout(()=>{el.setAttribute('aria-label','Copy link');el.style.color='';},2000);
+      });
+    } else if(map[key]){
+      window.open(map[key],'_blank','width=600,height=500,noopener');
+    }
+  });
+});
 
 // TOC highlight
 const links=[...document.querySelectorAll('#toc a')];
@@ -217,22 +254,7 @@ const isDismissed = getCk('to_gate_dismiss') === '1';
 if (isSub || isDismissed) {
   const g = document.getElementById('gate'); if (g) g.style.display = 'none';
   const l = document.getElementById('locked-content'); if (l) l.style.display = 'block';
-  if (isSub) {
-    const t = document.getElementById('toc'); if (t) t.style.display = 'block';
-    const s = document.getElementById('side-nl'); if (s) s.style.display = 'none';
-  }
 }
-
-// Handle sidebar newsletter submit
-const sideForm = document.querySelector('#side-nl form');
-sideForm?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  document.cookie = 'to_sub=1; path=/; max-age=31536000; SameSite=Lax; Secure';
-  const g = document.getElementById('gate'); if (g) g.style.display = 'none';
-  const l = document.getElementById('locked-content'); if (l) l.style.display = 'block';
-  const t = document.getElementById('toc'); if (t) t.style.display = 'block';
-  const s = document.getElementById('side-nl'); if (s) s.style.display = 'none';
-});
 </script>
 
 <style>
@@ -247,9 +269,9 @@ sideForm?.addEventListener('submit', (e) => {
 
 .art-header{max-width:none}
 .cat-tag{font-size:13px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--red-600)}
-.art-header h1{font-family:var(--font-display);font-weight:800;font-size:46px;line-height:1.12;letter-spacing:-.03em;margin:12px 0 16px;text-transform:capitalize}
+.art-header h1{font-family:var(--font-display);font-weight:800;font-size:46px;line-height:1.22;letter-spacing:-.03em;margin:12px 0 16px;text-transform:capitalize}
 .art-lead{font-family:var(--font-serif);font-size:23px;line-height:1.6;color:var(--ink-700)}
-.meta-row{display:flex;align-items:center;gap:var(--sp-5);margin-top:var(--sp-5);flex-wrap:wrap}
+.meta-row{display:flex;align-items:center;gap:var(--sp-5);margin-top:var(--sp-5);flex-wrap:nowrap}
 .byline{display:flex;align-items:center;gap:12px}
 .avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
 .byline .au{font-size:16px;font-weight:600;line-height:1.2}
@@ -264,7 +286,7 @@ sideForm?.addEventListener('submit', (e) => {
 /* layout: content + sidebar */
 .art-grid{display:grid;grid-template-columns:1fr 360px;gap:var(--sp-8);align-items:start;margin-top:var(--sp-5)}
 
-.prose{max-width:none;font-size:21px;line-height:1.85;color:var(--ink-800);font-family:var(--font-serif)}
+.prose{max-width:none;font-size:21px;line-height:1.85;color:var(--ink-800);font-family:var(--font-display)}
 .prose :global(p){margin:0 0 28px;line-height:1.85}
 .prose :global(h2){font-family:var(--font-serif);font-weight:700;font-size:32px;letter-spacing:-.01em;margin:56px 0 24px;scroll-margin-top:100px;text-transform:capitalize;line-height:1.3;color:var(--ink-900)}
 .prose :global(h3){font-family:var(--font-serif);font-weight:700;font-size:26px;margin:40px 0 20px;line-height:1.3;color:var(--ink-900)}
@@ -273,7 +295,7 @@ sideForm?.addEventListener('submit', (e) => {
 .prose :global(strong){font-weight:700;color:var(--ink-900)}
 .prose :global(a){color:var(--red-600);font-weight:600;border-bottom:1.5px solid var(--red-200);transition:color .12s var(--ease)}
 .prose :global(a:hover){color:var(--red-700);border-color:var(--red-400)}
-.prose :global(blockquote){border-left:3px solid var(--red-500);padding-left:24px;margin:36px 0;font-style:italic;font-size:23px;line-height:1.6;color:var(--ink-700)}
+.prose :global(blockquote){border-left:3px solid var(--red-500);padding-left:24px;margin:36px 0;font-style:italic;font-size:23px;line-height:1.6;color:var(--ink-700);font-family:var(--font-serif)}
 .prose :global(blockquote p){margin:0}
 .prose :global(img){max-width:100%;height:auto;border-radius:var(--r-md);margin:32px auto}
 .prose :global(figure){margin:32px 0}
@@ -307,6 +329,18 @@ sideForm?.addEventListener('submit', (e) => {
 .gift-form input:focus{outline:none;border-color:var(--red-500);box-shadow:0 0 0 3px var(--red-100)}
 .gift-box .gnote{font-size:15px;color:var(--ink-500);margin-top:14px}
 
+/* author profile */
+.author-profile{display:flex;gap:20px;align-items:flex-start;background:var(--bg-page);border:1px solid var(--ink-200);border-radius:var(--r-xl);padding:20px 24px;margin-top:var(--sp-6)}
+.au-av{width:60px;height:60px;border-radius:50%;background:var(--red-500);display:grid;place-items:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:-.01em}
+.au-body{flex:1;min-width:0;padding-top:2px}
+.au-name{font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--ink-900);margin-bottom:2px}
+.au-role{font-size:14px;font-weight:600;color:var(--red-600);margin-bottom:10px}
+.au-bio{font-size:15px;color:var(--ink-600);line-height:1.6;margin:0 0 14px;font-family:var(--font-body)}
+.au-socials{display:flex;gap:8px}
+.au-soc{width:34px;height:34px;border-radius:50%;border:1px solid var(--ink-300);background:transparent;display:grid;place-items:center;color:var(--ink-500);transition:all .12s var(--ease);flex-shrink:0}
+.au-soc:hover{color:var(--red-600);border-color:var(--red-400)}
+.au-soc svg{width:15px;height:15px;fill:currentColor}
+
 /* read next */
 .read-next{border-top:1px solid var(--ink-200);margin-top:var(--sp-8);padding-top:var(--sp-7)}
 .read-next h2{font-family:var(--font-display);font-weight:800;font-size:28px;letter-spacing:-.02em;margin-bottom:var(--sp-5);text-transform:capitalize}
@@ -331,5 +365,11 @@ sideForm?.addEventListener('submit', (e) => {
   .prose{font-size:18px}
   .rn-grid{grid-template-columns:1fr}
   .gift-box{padding:var(--sp-5)}.gift-box h2{font-size:25px}.gift-form{flex-direction:column}
+  .author-profile{flex-direction:column;gap:14px;padding:18px 20px}
+  .meta-row{gap:var(--sp-3)}
+  .byline .bl-text{font-size:14px}
+  .share{gap:6px}
+  .share a{width:30px;height:30px}
+  .share svg{width:13px;height:13px}
 }
 </style>

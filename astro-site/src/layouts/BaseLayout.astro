@@ -30,15 +30,15 @@ const { title, description = 'Build AI-powered YouTube channels that generate re
       <span class="brand-name">Tube<b>Operator</b></span>
     </a>
     <nav class="nav">
-      <a href="/story" class:list={[{ active: activePage === 'story' }]}>My story</a>
+      <a href="/my-story" class:list={[{ active: activePage === 'story' }]}>My story</a>
       <a href="/blog" class:list={[{ active: activePage === 'blog' }]}>Blog</a>
-      <a href="https://member.tubeoperator.com/shop/" target="_blank">Products</a>
+      <a href="/products" class:list={[{ active: activePage === 'products' }]}>Products</a>
       <a href="/contact" class:list={[{ active: activePage === 'contact' }]}>Contact</a>
     </nav>
     <div class="header-cta">
-      <span class="acct"><svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg></span>
-      <button class="btn btn-primary btn-sm">Learn YouTube &amp; AI</button>
-      <button class="menu-btn" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"/></svg></button>
+      <a href="https://member.tubeoperator.com/" class="acct" target="_blank" rel="noopener" aria-label="Member area"><svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg></a>
+      <a href="/" class="btn btn-primary btn-sm cta-desktop">Learn YouTube &amp; AI</a>
+      <button class="menu-btn" id="menu-btn" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"/></svg></button>
     </div>
   </div>
 </header>
@@ -60,7 +60,7 @@ const { title, description = 'Build AI-powered YouTube channels that generate re
       </div>
       <div>
         <h4>Explore</h4>
-        <a href="/story">My story</a><a href="/blog">Blog</a><a href="https://member.tubeoperator.com/shop/" target="_blank">Products</a><a href="/">Newsletter</a>
+        <a href="/my-story">My story</a><a href="/blog">Blog</a><a href="/products">Products</a><a href="/contact">Contact</a>
       </div>
       <div>
         <h4>Topics</h4>
@@ -68,19 +68,56 @@ const { title, description = 'Build AI-powered YouTube channels that generate re
       </div>
       <div>
         <h4>Company</h4>
-        <a href="/story">About</a><a href="/contact">Contact</a><a href="#">Privacy</a><a href="#">Terms</a>
+        <a href="/story">About</a><a href="/cookies">Cookies</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a>
       </div>
     </div>
   </div>
   <div class="foot-bottom">
     <span class="cp">© {new Date().getFullYear()} TubeOperator. All rights reserved.</span>
     <div class="socials">
-      <a href="#" aria-label="X"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
-      <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2c2.7 0 3 0 4.1.1 1.1 0 1.8.2 2.4.5.6.2 1.1.5 1.6 1s.8 1 1 1.6c.3.6.5 1.3.5 2.4.1 1.1.1 1.4.1 4.1s0 3-.1 4.1c0 1.1-.2 1.8-.5 2.4-.2.6-.5 1.1-1 1.6s-1 .8-1.6 1c-.6.3-1.3.5-2.4.5-1.1.1-1.4.1-4.1.1s-3 0-4.1-.1c-1.1 0-1.8-.2-2.4-.5-.6-.2-1.1-.5-1.6-1s-.8-1-1-1.6c-.3-.6-.5-1.3-.5-2.4C2 15 2 14.7 2 12s0-3 .1-4.1c0-1.1.2-1.8.5-2.4.2-.6.5-1.1 1-1.6s1-.8 1.6-1c.6-.3 1.3-.5 2.4-.5C9 2 9.3 2 12 2zm0 5a5 5 0 100 10 5 5 0 000-10zm0 8.2a3.2 3.2 0 110-6.4 3.2 3.2 0 010 6.4zm5.2-8.4a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z"/></svg></a>
+      <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg></a>
       <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24"><path d="M21.6 7.2c-.2-1-1-1.7-2-2C17.8 4.8 12 4.8 12 4.8s-5.8 0-7.6.4c-1 .3-1.8 1-2 2C2 9 2 12 2 12s0 3 .4 4.8c.2 1 1 1.7 2 2 1.8.4 7.6.4 7.6.4s5.8 0 7.6-.4c1-.3 1.8-1 2-2C22 15 22 12 22 12s0-3-.4-4.8zM10 15.5v-7l6 3.5-6 3.5z"/></svg></a>
+      <a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.66a8.2 8.2 0 004.84 1.55V6.76a4.85 4.85 0 01-1.07-.07z"/></svg></a>
+      <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg></a>
+      <a href="#" aria-label="X"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
     </div>
   </div>
 </footer>
+
+<!-- Mobile nav drawer -->
+<div class="mob-nav" id="mob-nav">
+  <div class="mob-top">
+    <a class="brand" href="/">
+      <span class="brand-mark" style="width:32px;height:32px"><svg viewBox="0 0 24 24"><path d="M9.3 7.4c0-1.27 1.4-2.05 2.47-1.36l7.07 4.6a1.62 1.62 0 0 1 0 2.72l-7.07 4.6C10.7 18.65 9.3 17.87 9.3 16.6V7.4z"/></svg></span>
+      <span class="brand-name" style="font-size:18px">Tube<b>Operator</b></span>
+    </a>
+    <button class="mob-x" id="mob-close" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <nav class="mob-links">
+    <a href="/my-story">My story</a>
+    <a href="/blog">Blog</a>
+    <a href="/products">Products</a>
+    <a href="/contact">Contact</a>
+  </nav>
+  <a href="/" class="btn btn-primary mob-cta">Learn YouTube &amp; AI</a>
+</div>
+<div class="mob-bd" id="mob-bd"></div>
+
+<script>
+(function(){
+  var btn = document.getElementById('menu-btn');
+  var nav = document.getElementById('mob-nav');
+  var cls = document.getElementById('mob-close');
+  var bd  = document.getElementById('mob-bd');
+  function open(){nav.classList.add('open');bd.classList.add('open');document.body.style.overflow='hidden';}
+  function close(){nav.classList.remove('open');bd.classList.remove('open');document.body.style.overflow='';}
+  if(btn) btn.addEventListener('click', open);
+  if(cls) cls.addEventListener('click', close);
+  if(bd)  bd.addEventListener('click', close);
+})();
+</script>
 
 </body>
 </html>
@@ -92,10 +129,11 @@ const { title, description = 'Build AI-powered YouTube channels that generate re
   --ink-900:#0F0F0F;--ink-800:#1B1B1B;--ink-700:#2C2C2C;--ink-600:#4A4A4A;--ink-500:#6B6B6B;
   --ink-400:#909090;--ink-300:#C4C4C4;--ink-200:#E4E0DB;--ink-100:#F0ECE6;--ink-50:#F8F5F1;
   --bg-page:#FBF4EE;--bg-surface:#FFFFFF;--bg-cream:#FAF3EC;--bg-dark:#1B1B1B;
-  --gold:#F2B600;--success:#1DA45A;
+  --gold:#F2B600;--success:#1DA45A;--danger:#E62117;--warning:#E8920C;--info:#2563EB;
   --font-display:'Plus Jakarta Sans',system-ui,sans-serif;
   --font-body:'Plus Jakarta Sans',system-ui,sans-serif;
   --font-serif:'Lora',Georgia,serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
   --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;--sp-8:64px;--sp-9:96px;
   --r-sm:8px;--r-md:12px;--r-lg:18px;--r-xl:28px;--r-pill:999px;
   --sh-1:0 1px 2px rgba(15,15,15,.05);--sh-2:0 2px 8px rgba(15,15,15,.06);
@@ -165,9 +203,24 @@ img{max-width:100%;display:block}
   .header-in{padding:14px 24px}
   .footer-in,.foot-bottom{padding-left:24px;padding-right:24px}
   .foot-grid{grid-template-columns:1fr 1fr}
+  .cta-desktop{display:none}
 }
 @media(max-width:520px){
   .foot-grid{grid-template-columns:1fr}
   .foot-bottom{flex-direction:column;align-items:flex-start}
 }
+
+/* Mobile nav drawer */
+.mob-nav{position:fixed;top:0;right:-100%;width:min(300px,82vw);height:100%;background:var(--bg-surface);z-index:200;padding:20px 24px 36px;display:flex;flex-direction:column;transition:right .28s var(--ease);box-shadow:-4px 0 32px rgba(15,15,15,.12)}
+.mob-nav.open{right:0}
+.mob-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:36px}
+.mob-x{background:none;border:none;cursor:pointer;color:var(--ink-700);padding:6px;display:grid;place-items:center;border-radius:var(--r-sm)}
+.mob-x:hover{background:var(--ink-100)}
+.mob-x svg{width:24px;height:24px}
+.mob-links{display:flex;flex-direction:column;flex:1}
+.mob-links a{font-size:18px;font-weight:600;color:var(--ink-700);padding:15px 0;border-bottom:1px solid var(--ink-200);transition:color .12s}
+.mob-links a:hover,.mob-links a:active{color:var(--red-600)}
+.mob-cta{margin-top:32px;justify-content:center}
+.mob-bd{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;opacity:0;pointer-events:none;transition:opacity .28s var(--ease)}
+.mob-bd.open{opacity:1;pointer-events:auto}
 </style>
