@@ -39,7 +39,23 @@ function getFeaturedImage(post: any): string | null {
     <p>Data-backed strategies on the algorithm, thumbnails, editing and monetization — written by operators who've done it.</p>
   </div>
 
-  <!-- FEATURED (first post) -->
+  <!-- SEARCH BAR -->
+  <div class="search-section">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input class="search-input" id="search-input" placeholder="Search articles..." type="search">
+    </div>
+  </div>
+
+  <!-- SEARCH RESULTS -->
+  <div class="search-results-wrapper" id="search-results-wrapper" style="display:none; margin-bottom:var(--sp-7);">
+    <h2 class="search-title" id="search-results-title">Search Results</h2>
+    <div class="card-grid" id="search-results-grid"></div>
+  </div>
+
+  <div id="blog-default-content">
+    <!-- FEATURED (first post) -->
+
   {posts.length > 0 && (() => {
     const fp = posts[0];
     const fpCat = getCategoryName(fp, categories);
@@ -84,11 +100,106 @@ function getFeaturedImage(post: any): string | null {
         </a>
       );
     })}
+    </div>
   </div>
 </section>
 </BaseLayout>
 
+<script>
+  let pagefind: any = null;
+  const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
+  const searchResultsWrapper = document.getElementById('search-results-wrapper');
+  const searchResultsGrid = document.getElementById('search-results-grid');
+  const searchResultsTitle = document.getElementById('search-results-title');
+  const blogDefaultContent = document.getElementById('blog-default-content');
+
+  async function initPagefind() {
+    if (!pagefind) {
+      try {
+        pagefind = await new Function('return import("/pagefind/pagefind.js")')();
+        await pagefind.options({
+          // any custom options
+        });
+      } catch (e) {
+        console.error('Failed to load Pagefind search index:', e);
+      }
+    }
+    return pagefind;
+  }
+
+  let debounceTimer: any = null;
+  searchInput?.addEventListener('input', (e) => {
+    const query = (e.target as HTMLInputElement).value.trim();
+    
+    if (debounceTimer) clearTimeout(debounceTimer);
+    
+    debounceTimer = setTimeout(async () => {
+      if (!query) {
+        if (searchResultsWrapper) searchResultsWrapper.style.display = 'none';
+        if (blogDefaultContent) blogDefaultContent.style.display = 'block';
+        return;
+      }
+
+      if (blogDefaultContent) blogDefaultContent.style.display = 'none';
+      if (searchResultsWrapper) searchResultsWrapper.style.display = 'block';
+      if (searchResultsGrid) searchResultsGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--ink-500); padding: 32px 0;">Searching...</div>';
+
+      const pf = await initPagefind();
+      if (!pf) {
+        if (searchResultsGrid) searchResultsGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--danger); padding: 32px 0;">Search is currently unavailable.</div>';
+        return;
+      }
+
+      const search = await pf.search(query);
+      if (search.results.length === 0) {
+        if (searchResultsTitle) searchResultsTitle.textContent = `No results found for "${query}"`;
+        if (searchResultsGrid) searchResultsGrid.innerHTML = '';
+        return;
+      }
+
+      if (searchResultsTitle) searchResultsTitle.textContent = `Search Results for "${query}" (${search.results.length})`;
+      
+      const results = await Promise.all(
+        search.results.slice(0, 15).map((r: any) => r.data())
+      );
+
+      if (searchResultsGrid) {
+        searchResultsGrid.innerHTML = results.map((r: any) => {
+          const title = r.meta?.title || 'Untitled';
+          const excerpt = r.excerpt || '';
+          const image = r.meta?.image || '';
+          
+          return `
+            <a href="${r.url}" class="art-card">
+              <div class="art-cover" style="${image ? `background-image:url(${image})` : 'background:var(--red-500)'}">
+              </div>
+              <div class="art-body">
+                <h3 class="art-title">${title}</h3>
+                <p style="font-size:15px; color:var(--ink-600); margin-top:12px; line-height:1.5;">${excerpt}</p>
+              </div>
+            </a>
+          `;
+        }).join('');
+      }
+    }, 250);
+  });
+
+  // Preload Pagefind on focus
+  searchInput?.addEventListener('focus', () => {
+    initPagefind();
+  });
+</script>
+
+
 <style>
+/* ===== Search Bar ===== */
+.search-section{max-width:480px;margin-bottom:var(--sp-6)}
+.search-wrap{position:relative;width:100%}
+.search-wrap .search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--ink-400);pointer-events:none}
+.search-input{width:100%;font-family:var(--font-body);font-size:17px;padding:16px 16px 16px 50px;border:1.5px solid var(--ink-200);border-radius:var(--r-pill);background:var(--bg-surface);transition:border-color .12s var(--ease),box-shadow .12s var(--ease)}
+.search-input:focus{outline:none;border-color:var(--red-500);box-shadow:0 0 0 3px var(--red-100)}
+.search-title{font-family:var(--font-display);font-weight:800;font-size:28px;margin-bottom:var(--sp-4)}
+
 /* ===== Blog shell ===== */
 .blog{max-width:1400px;margin:0 auto;padding:var(--sp-7) 48px var(--sp-8)}
 .crumb{font-size:15px;color:var(--ink-500);margin-bottom:var(--sp-5)}

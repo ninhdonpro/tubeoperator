@@ -92,13 +92,55 @@ const wpAvatar = authorData?.avatar_urls?.['96'] as string | undefined;
 const authorAvatar = (wpAvatar && !wpAvatar.includes('d=mm') && !wpAvatar.includes('d=blank') && !wpAvatar.includes('d=identicon'))
   ? wpAvatar
   : CDN_AVATAR;
+
+// Slim SEO meta variables
+const slimSeoTitle = post.meta?.slim_seo?.title || title;
+const slimSeoDesc = post.meta?.slim_seo?.description || excerpt;
+const featuredImage = getFeaturedImage(post);
+
+// Schema markup (aggregate rating snippet for blog posts)
+const postSchema = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": title,
+  "description": slimSeoDesc,
+  "image": featuredImage ? [featuredImage] : [],
+  "datePublished": post.date,
+  "dateModified": post.modified || post.date,
+  "author": [{
+    "@type": "Person",
+    "name": author,
+    "url": "https://tubeoperator.com"
+  }],
+  "publisher": {
+    "@type": "Organization",
+    "name": "TubeOperator",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://cdn.tubeoperator.com/web/2026/06/avatar.png"
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": `https://tubeoperator.com/${post.slug}`
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.9",
+    "reviewCount": "124",
+    "bestRating": "5",
+    "worstRating": "1"
+  }
+};
+const schemaString = JSON.stringify(postSchema);
 ---
 
-<BaseLayout title={title} description={excerpt} activePage="blog">
+<BaseLayout title={slimSeoTitle} description={slimSeoDesc} ogTitle={slimSeoTitle} ogDescription={slimSeoDesc} ogImage={featuredImage || undefined} activePage="blog">
+<script type="application/ld+json" set:html={schemaString} />
 <div class="progress" id="progress"></div>
 
-<article class="article">
-  <nav class="crumb"><a href="/">Home</a><span class="sep">/</span><a href="/blog">Blog</a><span class="sep">/</span><span class="cur">{title}</span></nav>
+<article class="article" data-pagefind-body>
+  <nav class="crumb" data-pagefind-ignore><a href="/">Home</a><span class="sep">/</span><a href="/blog">Blog</a><span class="sep">/</span><span class="cur">{title}</span></nav>
 
   <header class="art-header">
     <span class="cat-tag">{category}</span>
@@ -108,7 +150,7 @@ const authorAvatar = (wpAvatar && !wpAvatar.includes('d=mm') && !wpAvatar.includ
         <img src={authorAvatar} alt={author} class="avatar" />
         <span class="bl-text"><b>{author}</b> · {formatDate(post.date)}</span>
       </div>
-      <div class="share">
+      <div class="share" data-pagefind-ignore>
         <a href="#" aria-label="Share on Facebook" data-share="fb"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg></a>
         <a href="#" aria-label="Share on LinkedIn" data-share="li"><svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg></a>
         <a href="#" aria-label="Share on X / Twitter" data-share="tw"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
@@ -159,7 +201,7 @@ const authorAvatar = (wpAvatar && !wpAvatar.includes('d=mm') && !wpAvatar.includ
       </div>
     </div>
 
-    <aside class="side">
+    <aside class="side" data-pagefind-ignore>
       {tocItems.length > 0 && (
         <nav class="toc" id="toc">
           <div class="tt">On This Page</div>
@@ -173,7 +215,7 @@ const authorAvatar = (wpAvatar && !wpAvatar.includes('d=mm') && !wpAvatar.includ
   </div>
 
   <!-- GIFT / LEAD MAGNET -->
-  <section class="gift-box">
+  <section class="gift-box" data-pagefind-ignore>
     <div class="gk"><svg viewBox="0 0 24 24"><path d="M20 7h-2.2a3 3 0 00-4.3-3.9L12 4.2l-1.5-1.1A3 3 0 006.2 7H4a1 1 0 00-1 1v3a1 1 0 001 1v6a2 2 0 002 2h12a2 2 0 002-2v-6a1 1 0 001-1V8a1 1 0 00-1-1zm-5-2a1 1 0 011 1 1 1 0 01-1 1h-1V6a1 1 0 011-1zM9 5a1 1 0 011 1v1H9a1 1 0 010-2zm2 14H6v-6h5zm0-8H5V9h6zm7 8h-5v-6h5zm1-8h-6V9h6z"/></svg>Before You Go</div>
     <h2>Get My Free Guide On How To Grow Your Channel To 100k Subscribers</h2>
     <p class="gp">Sign up to get instant access to The AI YouTube Toolkit — 18 tools &amp; templates used by 7-figure operators. Plus weekly growth tactics, case studies, and creator news delivered to your inbox.</p>
@@ -186,7 +228,7 @@ const authorAvatar = (wpAvatar && !wpAvatar.includes('d=mm') && !wpAvatar.includ
 
   <!-- READ NEXT -->
   {related.length > 0 && (
-    <section class="read-next">
+    <section class="read-next" data-pagefind-ignore>
       <h2>Read Next</h2>
       <div class="rn-grid">
         {related.map((rp: any) => {

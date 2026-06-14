@@ -4,9 +4,21 @@ interface Props {
   description?: string;
   activePage?: string;
   minimalHeader?: boolean;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
 }
 
-const { title, description = 'Build AI-powered YouTube channels that generate real income. Strategies, tools, and systems from 20+ channels with 6B+ views.', activePage = '', minimalHeader = false } = Astro.props;
+const {
+  title,
+  description = 'Build AI-powered YouTube channels that generate real income. Strategies, tools, and systems from 20+ channels with 6B+ views.',
+  activePage = '',
+  minimalHeader = false,
+  ogTitle,
+  ogDescription,
+  ogImage
+} = Astro.props;
+
 ---
 
 <!DOCTYPE html>
@@ -16,15 +28,19 @@ const { title, description = 'Build AI-powered YouTube channels that generate re
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content={description} />
 <title>{title} — TubeOperator</title>
+<meta property="og:title" content={ogTitle || title} />
+<meta property="og:description" content={ogDescription || description} />
+{ogImage && <meta property="og:image" content={ogImage} />}
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
 <!-- ===== HEADER ===== -->
-<header class="header">
+<header class="header" data-pagefind-ignore>
   <div class="header-in">
     <a class="brand" href="/">
       <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M9.3 7.4c0-1.27 1.4-2.05 2.47-1.36l7.07 4.6a1.62 1.62 0 0 1 0 2.72l-7.07 4.6C10.7 18.65 9.3 17.87 9.3 16.6V7.4z"/></svg></span>
@@ -49,7 +65,7 @@ const { title, description = 'Build AI-powered YouTube channels that generate re
 </main>
 
 <!-- ===== FOOTER ===== -->
-<footer class="footer">
+<footer class="footer" data-pagefind-ignore>
   <div class="footer-in">
     <div class="foot-grid">
       <div class="foot-brand">
@@ -86,7 +102,7 @@ const { title, description = 'Build AI-powered YouTube channels that generate re
 </footer>
 
 <!-- Mobile nav drawer -->
-<div class="mob-nav" id="mob-nav">
+<div class="mob-nav" id="mob-nav" data-pagefind-ignore>
   <div class="mob-top">
     <a class="brand" href="/">
       <span class="brand-mark" style="width:32px;height:32px"><svg viewBox="0 0 24 24"><path d="M9.3 7.4c0-1.27 1.4-2.05 2.47-1.36l7.07 4.6a1.62 1.62 0 0 1 0 2.72l-7.07 4.6C10.7 18.65 9.3 17.87 9.3 16.6V7.4z"/></svg></span>
