@@ -26,9 +26,10 @@ cd astro-site && npx wrangler pages deploy dist
 <!-- AUTO-MANAGED: architecture -->
 ## Architecture
 
-- **Framework:** Astro 6 (SSG) — `output: 'static'` with `@astrojs/cloudflare` adapter; individual API routes opt into SSR via `export const prerender = false`
+- **Framework:** Astro 6 (SSG) — purely static (`output: 'static'`, no adapter); `trailingSlash: 'never'`, `build.format: 'file'`
 - **CMS:** WordPress (headless) — data fetched at build via `WP_API_URL` env var through `src/lib/wordpress.ts`
 - **Hosting:** Cloudflare Pages (`wrangler.jsonc` → `pages_build_output_dir: ./dist`)
+- **Runtime API:** Cloudflare Pages Functions (`functions/` dir at astro-site root) — served by Cloudflare at runtime, no Astro adapter needed
 - **i18n:** Polylang Pro on the WP side; language prefix routing handled by WP REST API queries
 - **Styling:** Component-scoped `<style>` in each `.astro` file + one global `<style is:global>` in `BaseLayout.astro`
 - **Env vars:** `WP_API_URL` (build-time WP API); `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID`, `GHL_LANGUAGE_FIELD_ID` (runtime, required by `/api/subscribe`). Copy `.env.example` → `astro-site/.env` for local dev; set in Cloudflare dashboard for production. `GHL_LANGUAGE_FIELD_ID` is optional — if unset, language custom field is skipped.
@@ -36,11 +37,14 @@ cd astro-site && npx wrangler pages deploy dist
 ```
 tubeoperator/
 ├── astro-site/
+│   ├── functions/
+│   │   └── api/
+│   │       └── subscribe.js  # Cloudflare Pages Function — POST /api/subscribe
 │   ├── src/
 │   │   ├── components/     # Astro components (e.g. SubscribeGate.astro)
 │   │   ├── layouts/        # BaseLayout.astro — shared shell for all pages
 │   │   ├── lib/            # TypeScript helpers (wordpress.ts, splitGate.ts)
-│   │   └── pages/          # File-based routes
+│   │   └── pages/          # File-based routes (all static)
 │   │       ├── index.astro
 │   │       ├── [slug].astro  # All blog posts
 │   │       ├── blog/
@@ -66,7 +70,7 @@ tubeoperator/
 - **Naming:** kebab-case for files and CSS classes; camelCase for Astro variables and TypeScript
 - **Images:** Featured images come from WP media URLs. Static assets go in `public/`
 - **Gate logic:** `src/lib/splitGate.ts` splits post content at a `<!-- gate -->` comment; gate reveal uses cookies (`to_sub=1` or `to_gate_dismiss=1`)
-- **API routes:** Files under `src/pages/api/` use `export const prerender = false` to opt into Cloudflare SSR within the otherwise static site.
+- **Cloudflare Pages Functions:** Runtime API handlers live in `functions/` at the astro-site root (e.g. `functions/api/subscribe.js`). Use `export async function onRequestPost({ request, env })` — no Astro adapter or `prerender` flag needed.
 
 <!-- END AUTO-MANAGED -->
 
@@ -83,7 +87,7 @@ tubeoperator/
 - **Author avatar CDN fallback:** WP gravatar URLs containing `d=mm`, `d=blank`, or `d=identicon` (default/missing avatar) fall back to `https://cdn.tubeoperator.com/web/2026/06/avatar.png`.
 - **catColors lookup table:** Category-to-color mapping `{ Algorithm, Thumbnails, Editing, Scripting, Growth, Monetization }` is duplicated inline in both `[slug].astro` and `blog/index.astro` — not yet extracted to a shared helper.
 - **Native subscribe forms (active pattern):** Both `index.astro` (homepage hero `.nl-form`) and `SubscribeGate.astro` (post gate `.gate-form`) use native `<form>` elements that POST to `/api/subscribe`. Homepage sends `{ email, source: 'homepage-newsletter', language: navigator.language }` and redirects to `/welcome/` on success. Gate sends `{ email, source: 'blog-gate', language: navigator.language }`, sets `to_sub=1` cookie, and reveals locked content. GHL iframe blocks are preserved as HTML comments in both files but are NOT active.
-- **`/api/subscribe` endpoint:** `src/pages/api/subscribe.ts` (`prerender = false`) — validates email, then POSTs to `https://services.leadconnectorhq.com/contacts/` (GHL REST API, `Version: v3` header) using `GHL_PRIVATE_TOKEN` and `GHL_LOCATION_ID`. Includes `tags: ['newsletter subscriber']`, `country` from `CF-IPCountry` header (Cloudflare-injected, absent in local dev), and optionally `customFields` with `language` value when `GHL_LANGUAGE_FIELD_ID` is set. Returns `{ success: true }` or `{ error }` JSON.
+- **`/api/subscribe` endpoint:** `functions/api/subscribe.js` (Cloudflare Pages Function) — validates email, then POSTs to `https://services.leadconnectorhq.com/contacts/` (GHL REST API, `Version: v3` header) using `GHL_PRIVATE_TOKEN` and `GHL_LOCATION_ID`. Includes `tags: ['newsletter subscriber']`, `country` from `CF-IPCountry` header (Cloudflare-injected, absent in local dev), and optionally `customFields` with `language` value when `GHL_LANGUAGE_FIELD_ID` is set. Returns `{ success: true }` or `{ error }` JSON. Moved from `src/pages/api/subscribe.ts` to avoid ASSETS binding conflict with Cloudflare.
 - **GHL iframe embeds (survey only):** `survey.astro` still uses an active GHL iframe widget from `api.automator.vn` — the `is:inline` script and `data-layout` frontmatter string pattern applies there.
 
 <!-- END AUTO-MANAGED -->
