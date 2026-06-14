@@ -3,9 +3,10 @@ interface Props {
   title: string;
   description?: string;
   activePage?: string;
+  minimalHeader?: boolean;
 }
 
-const { title, description = 'Build AI-powered YouTube channels that generate real income. Strategies, tools, and systems from 20+ channels with 6B+ views.', activePage = '' } = Astro.props;
+const { title, description = 'Build AI-powered YouTube channels that generate real income. Strategies, tools, and systems from 20+ channels with 6B+ views.', activePage = '', minimalHeader = false } = Astro.props;
 ---
 
 <!DOCTYPE html>
@@ -29,17 +30,17 @@ const { title, description = 'Build AI-powered YouTube channels that generate re
       <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M9.3 7.4c0-1.27 1.4-2.05 2.47-1.36l7.07 4.6a1.62 1.62 0 0 1 0 2.72l-7.07 4.6C10.7 18.65 9.3 17.87 9.3 16.6V7.4z"/></svg></span>
       <span class="brand-name">Tube<b>Operator</b></span>
     </a>
-    <nav class="nav">
+    {!minimalHeader && <nav class="nav">
       <a href="/my-story" class:list={[{ active: activePage === 'story' }]}>My story</a>
       <a href="/blog" class:list={[{ active: activePage === 'blog' }]}>Blog</a>
       <a href="/products" class:list={[{ active: activePage === 'products' }]}>Products</a>
       <a href="/contact" class:list={[{ active: activePage === 'contact' }]}>Contact</a>
-    </nav>
-    <div class="header-cta">
+    </nav>}
+    {!minimalHeader && <div class="header-cta">
       <a href="https://member.tubeoperator.com/" class="acct" target="_blank" rel="noopener" aria-label="Member area"><svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg></a>
       <a href="/" class="btn btn-primary btn-sm cta-desktop">Learn YouTube &amp; AI</a>
       <button class="menu-btn" id="menu-btn" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"/></svg></button>
-    </div>
+    </div>}
   </div>
 </header>
 
