@@ -63,6 +63,7 @@ function getCatColor(catName: string): string { return catColors[catName] || '#E
 let title = '';
 let author = '';
 let categoryName = '';
+let categorySlug = '';
 let excerpt = '';
 let catColor = '';
 let related: any[] = [];
@@ -84,11 +85,15 @@ if (type === 'post') {
   title = stripHtml(post.title.rendered);
   author = getAuthorName(post);
   categoryName = getCategoryName(post, categories);
+  
+  const currentCatId = post.categories?.[0];
+  const catObj = categories.find((c: any) => c.id === currentCatId);
+  categorySlug = catObj?.slug || 'uncategorized';
+
   excerpt = stripHtml(post.excerpt?.rendered || '').substring(0, 160);
   catColor = getCatColor(categoryName);
 
   // Related posts matching the same category, fallback to latest
-  const currentCatId = post.categories?.[0];
   const sameCategoryPosts = allPosts.filter((p: any) => p.id !== post.id && p.categories?.includes(currentCatId));
   const relatedPosts = sameCategoryPosts.length >= 3
     ? sameCategoryPosts
@@ -186,10 +191,10 @@ const totalPages = type === 'category' ? Math.ceil(categoryPosts.length / POSTS_
     <div class="progress" id="progress"></div>
 
     <article class="article" data-pagefind-body>
-      <nav class="crumb" data-pagefind-ignore><a href="/">Home</a><span class="sep">/</span><a href="/blog/">Blog</a><span class="sep">/</span><span class="cur">{title}</span></nav>
+      <nav class="crumb" data-pagefind-ignore><a href="/">Home</a><span class="sep">/</span><a href={`/${categorySlug}/`}>{categoryName}</a><span class="sep">/</span><span class="cur">{title}</span></nav>
 
       <header class="art-header">
-        <span class="cat-tag">{categoryName}</span>
+        <a href={`/${categorySlug}/`} class="cat-tag">{categoryName}</a>
         <h1 set:html={post.title.rendered} />
         <div class="meta-row">
           <div class="byline">
@@ -467,7 +472,8 @@ const totalPages = type === 'category' ? Math.ceil(categoryPosts.length / POSTS_
 .crumb .cur{color:var(--ink-900);font-weight:600}
 
 .art-header{max-width:none}
-.cat-tag{font-size:13px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--red-600)}
+.cat-tag{font-size:13px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--red-600);transition:color .12s var(--ease)}
+.cat-tag:hover{color:var(--red-800)}
 .art-header h1{font-family:var(--font-display);font-weight:800;font-size:46px;line-height:1.22;letter-spacing:-.03em;margin:12px 0 16px;text-transform:capitalize}
 .art-lead{font-family:var(--font-serif);font-size:23px;line-height:1.6;color:var(--ink-700)}
 .meta-row{display:flex;align-items:center;gap:var(--sp-5);margin-top:var(--sp-5);flex-wrap:nowrap}
