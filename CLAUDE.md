@@ -51,8 +51,10 @@ tubeoperator/
 │   │   ├── lib/            # TypeScript helpers (wordpress.ts, splitGate.ts)
 │   │   └── pages/          # File-based routes (all static)
 │   │       ├── index.astro
-│   │       ├── [slug].astro  # All blog posts
+│   │       ├── [slug].astro  # Blog posts & category archives (unified router)
 │   │       ├── blog/
+│   │       ├── category/
+│   │       │   └── index.astro # Category directory page
 │   │       ├── survey.astro
 │   │       ├── contact.astro
 │   │       ├── welcome.astro
@@ -69,7 +71,7 @@ tubeoperator/
 <!-- AUTO-MANAGED: conventions -->
 ## Code Conventions
 
-- **Routes:** File-based — `src/pages/[slug].astro` handles all blog posts (slugs from WP)
+- **Routes:** File-based — `src/pages/[slug].astro` handles all blog posts and category archives (slugs from WP). `src/pages/category/index.astro` renders the list of all categories.
 - **Data fetching:** Always use helpers in `src/lib/wordpress.ts` (`getPosts`, `getCategories`). Never call the WP API directly from components.
 - **Layouts:** All pages use `src/layouts/BaseLayout.astro` — pass `title`, `description`, `activePage` props
 - **Naming:** kebab-case for files and CSS classes; camelCase for Astro variables and TypeScript

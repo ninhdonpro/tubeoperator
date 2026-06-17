@@ -6,17 +6,27 @@ import { splitGate } from '../lib/splitGate';
 
 export async function getStaticPaths() {
   const { posts } = await getPosts(100);
-  return posts.map((post: any) => ({
+  const categories = await getCategories();
+
+  // 1. Paths for single posts
+  const postPaths = posts.map((post: any) => ({
     params: { slug: post.slug },
-    props: { post },
+    props: { type: 'post', post, categories, allPosts: posts },
   }));
+
+  // 2. Paths for category archive pages
+  const categoryPaths = categories.map((category: any) => {
+    const categoryPosts = posts.filter((post: any) => post.categories?.includes(category.id));
+    return {
+      params: { slug: category.slug },
+      props: { type: 'category', category, categoryPosts, categories, allPosts: posts },
+    };
+  });
+
+  return [...postPaths, ...categoryPaths];
 }
 
-const { post } = Astro.props;
-const categories = await getCategories();
-const { posts: allPosts } = await getPosts(100);
-
-// Content splitting moved below TOC extraction
+const { type = 'post', post, category, categoryPosts, categories, allPosts } = Astro.props;
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').replace(/&#(\d+);/g, (_,n) => String.fromCharCode(Number(n))).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#039;/g,"'").replace(/&rsquo;/g,"\u2019").replace(/&lsquo;/g,"\u2018").replace(/&rdquo;/g,"\u201D").replace(/&ldquo;/g,"\u201C").replace(/&ndash;/g,"\u2013").replace(/&mdash;/g,"\u2014").trim();
@@ -49,262 +59,402 @@ const catColors: Record<string, string> = {
 };
 function getCatColor(catName: string): string { return catColors[catName] || '#E62117'; }
 
-const title = stripHtml(post.title.rendered);
-const author = getAuthorName(post);
-const category = getCategoryName(post, categories);
-const excerpt = stripHtml(post.excerpt?.rendered || '').substring(0, 160);
-const catColor = getCatColor(category);
+// Post-specific variables
+let title = '';
+let author = '';
+let categoryName = '';
+let excerpt = '';
+let catColor = '';
+let related: any[] = [];
+let tocItems: {id: string, text: string}[] = [];
+let free = '';
+let locked = '';
+let hasGate = false;
+let subscribed = false;
+let dismissed = false;
+let authorAvatar = '';
+let authorBio = '';
+let authorRole = '';
+let slimSeoTitle = '';
+let slimSeoDesc = '';
+let featuredImage: string | null = null;
+let schemaString = '';
 
-// Related posts (exclude current)
-const related = allPosts.filter((p: any) => p.id !== post.id).slice(0, 3);
+if (type === 'post') {
+  title = stripHtml(post.title.rendered);
+  author = getAuthorName(post);
+  categoryName = getCategoryName(post, categories);
+  excerpt = stripHtml(post.excerpt?.rendered || '').substring(0, 160);
+  catColor = getCatColor(categoryName);
 
-// Extract h2 headings for TOC from full content
-const h2Regex = /<h2[^>]*>(.*?)<\/h2>/gi;
-const tocItems: {id: string, text: string}[] = [];
-let match;
-let fullHtml = post.content.rendered;
-while ((match = h2Regex.exec(fullHtml)) !== null) {
-  const text = stripHtml(match[1]);
-  const id = slugify(text);
-  tocItems.push({ id, text });
-}
-// Inject id attributes into h2 tags in content
-let contentHtml = post.content.rendered;
-let h2Index = 0;
-contentHtml = contentHtml.replace(/<h2([^>]*)>/gi, (fullMatch, attrs) => {
-  if (h2Index < tocItems.length) {
-    const id = tocItems[h2Index].id;
-    h2Index++;
-    return `<h2 id="${id}"${attrs}>`;
+  // Related posts matching the same category, fallback to latest
+  const currentCatId = post.categories?.[0];
+  const sameCategoryPosts = allPosts.filter((p: any) => p.id !== post.id && p.categories?.includes(currentCatId));
+  const relatedPosts = sameCategoryPosts.length >= 3
+    ? sameCategoryPosts
+    : allPosts.filter((p: any) => p.id !== post.id);
+  related = relatedPosts.slice(0, 3);
+
+  // Extract h2 headings for TOC
+  const h2Regex = /<h2[^>]*>(.*?)<\/h2>/gi;
+  let match;
+  let fullHtml = post.content.rendered;
+  while ((match = h2Regex.exec(fullHtml)) !== null) {
+    const text = stripHtml(match[1]);
+    const id = slugify(text);
+    tocItems.push({ id, text });
   }
-  return fullMatch;
-});
-const { free, locked } = splitGate(contentHtml);
-const hasGate = locked.length > 0;
 
-const subscribed = Astro.cookies.get('to_sub')?.value === '1';
-const dismissed = Astro.cookies.get('to_gate_dismiss')?.value === '1';
-const authorData = post._embedded?.author?.[0] as any;
-const authorBio = authorData?.description || '';
-const authorRole = authorData?.meta?.title || authorData?.meta?.position || authorData?.meta?.job_title || null;
-const CDN_AVATAR = 'https://cdn.tubeoperator.com/web/2026/06/avatar.png';
-const wpAvatar = authorData?.avatar_urls?.['96'] as string | undefined;
-const authorAvatar = (wpAvatar && !wpAvatar.includes('d=mm') && !wpAvatar.includes('d=blank') && !wpAvatar.includes('d=identicon'))
-  ? wpAvatar
-  : CDN_AVATAR;
-
-// Slim SEO meta variables
-const slimSeoTitle = post.meta?.slim_seo?.title || title;
-const slimSeoDesc = post.meta?.slim_seo?.description || excerpt;
-const featuredImage = getFeaturedImage(post);
-
-// Schema markup (aggregate rating snippet for blog posts)
-const postSchema = {
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  "headline": title,
-  "description": slimSeoDesc,
-  "image": featuredImage ? [featuredImage] : [],
-  "datePublished": post.date,
-  "dateModified": post.modified || post.date,
-  "author": [{
-    "@type": "Person",
-    "name": author,
-    "url": "https://tubeoperator.com"
-  }],
-  "publisher": {
-    "@type": "Organization",
-    "name": "TubeOperator",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://cdn.tubeoperator.com/web/2026/06/avatar.png"
+  // Inject id attributes into h2 tags in content
+  let contentHtml = post.content.rendered;
+  let h2Index = 0;
+  contentHtml = contentHtml.replace(/<h2([^>]*)>/gi, (fullMatch, attrs) => {
+    if (h2Index < tocItems.length) {
+      const id = tocItems[h2Index].id;
+      h2Index++;
+      return `<h2 id="${id}"${attrs}>`;
     }
-  },
-  "mainEntityOfPage": {
-    "@type": "WebPage",
-    "@id": `https://tubeoperator.com/${post.slug}`
-  },
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "4.9",
-    "reviewCount": "124",
-    "bestRating": "5",
-    "worstRating": "1"
-  }
-};
-const schemaString = JSON.stringify(postSchema);
+    return fullMatch;
+  });
+
+  const splitResult = splitGate(contentHtml);
+  free = splitResult.free;
+  locked = splitResult.locked;
+  hasGate = locked.length > 0;
+
+  subscribed = Astro.cookies.get('to_sub')?.value === '1';
+  dismissed = Astro.cookies.get('to_gate_dismiss')?.value === '1';
+  const authorData = post._embedded?.author?.[0] as any;
+  authorBio = authorData?.description || '';
+  authorRole = authorData?.meta?.title || authorData?.meta?.position || authorData?.meta?.job_title || null;
+  const CDN_AVATAR = 'https://cdn.tubeoperator.com/web/2026/06/avatar.png';
+  const wpAvatar = authorData?.avatar_urls?.['96'] as string | undefined;
+  authorAvatar = (wpAvatar && !wpAvatar.includes('d=mm') && !wpAvatar.includes('d=blank') && !wpAvatar.includes('d=identicon'))
+    ? wpAvatar
+    : CDN_AVATAR;
+
+  // Slim SEO meta
+  slimSeoTitle = post.meta?.slim_seo?.title || title;
+  slimSeoDesc = post.meta?.slim_seo?.description || excerpt;
+  featuredImage = getFeaturedImage(post);
+
+  // Schema markup
+  const postSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": title,
+    "description": slimSeoDesc,
+    "image": featuredImage ? [featuredImage] : [],
+    "datePublished": post.date,
+    "dateModified": post.modified || post.date,
+    "author": [{
+      "@type": "Person",
+      "name": author,
+      "url": "https://tubeoperator.com"
+    }],
+    "publisher": {
+      "@type": "Organization",
+      "name": "TubeOperator",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://cdn.tubeoperator.com/web/2026/06/avatar.png"
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://tubeoperator.com/${post.slug}`
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": "124",
+      "bestRating": "5",
+      "worstRating": "1"
+    }
+  };
+  schemaString = JSON.stringify(postSchema);
+}
+
+// Category-specific variables
+const POSTS_PER_PAGE = 9;
+const totalPages = type === 'category' ? Math.ceil(categoryPosts.length / POSTS_PER_PAGE) : 0;
 ---
 
-<BaseLayout title={slimSeoTitle} description={slimSeoDesc} ogTitle={slimSeoTitle} ogDescription={slimSeoDesc} ogImage={featuredImage || undefined} activePage="blog">
-<script type="application/ld+json" set:html={schemaString} />
-<div class="progress" id="progress"></div>
+{type === 'post' ? (
+  <BaseLayout title={slimSeoTitle} description={slimSeoDesc} ogTitle={slimSeoTitle} ogDescription={slimSeoDesc} ogImage={featuredImage || undefined} activePage="blog">
+    <script type="application/ld+json" set:html={schemaString} />
+    <div class="progress" id="progress"></div>
 
-<article class="article" data-pagefind-body>
-  <nav class="crumb" data-pagefind-ignore><a href="/">Home</a><span class="sep">/</span><a href="/blog/">Blog</a><span class="sep">/</span><span class="cur">{title}</span></nav>
+    <article class="article" data-pagefind-body>
+      <nav class="crumb" data-pagefind-ignore><a href="/">Home</a><span class="sep">/</span><a href="/blog/">Blog</a><span class="sep">/</span><span class="cur">{title}</span></nav>
 
-  <header class="art-header">
-    <span class="cat-tag">{category}</span>
-    <h1 set:html={post.title.rendered} />
-    <div class="meta-row">
-      <div class="byline">
-        <img src={authorAvatar} alt={author} class="avatar" />
-        <span class="bl-text"><b>{author}</b> · {formatDate(post.date)}</span>
-      </div>
-      <div class="share" data-pagefind-ignore>
-        <a href="#" aria-label="Share on Facebook" data-share="fb"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg></a>
-        <a href="#" aria-label="Share on LinkedIn" data-share="li"><svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg></a>
-        <a href="#" aria-label="Share on X / Twitter" data-share="tw"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
-        <a href="#" aria-label="Share on Pinterest" data-share="pi"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-3.6 19.3c-.1-.8-.2-2.1.1-3 .3-1.1 1.8-7.8 1.8-7.8s-.5-.9-.5-2.3c0-2.2 1.3-3.8 2.9-3.8 1.4 0 2 1 2 2.3 0 1.4-.9 3.5-1.4 5.5-.4 1.6.8 2.9 2.4 2.9 2.8 0 4.9-3 4.9-7.3 0-3.8-2.8-6.5-6.7-6.5-4.6 0-7.3 3.4-7.3 7 0 1.4.5 2.8 1.3 3.6.1.2.1.3.1.4-.1.6-.4 1.9-.5 2.1-.1.3-.3.4-.5.3-1.9-.9-3.1-3.7-3.1-6 0-4.8 3.5-9.2 10.2-9.2 5.3 0 9.5 3.8 9.5 8.8 0 5.3-3.3 9.5-7.9 9.5-1.5 0-3-.8-3.5-1.7l-.9 3.6c-.3 1.3-1.2 2.9-1.8 3.9A10 10 0 0022 12 10 10 0 0012 2z"/></svg></a>
-        <a href="#" aria-label="Copy link" data-share="copy" id="copy-link"><svg viewBox="0 0 24 24"><path d="M3.9 12a3.1 3.1 0 013.1-3.1h4V7h-4a5 5 0 100 10h4v-1.9h-4A3.1 3.1 0 013.9 12zM8 13h8v-2H8v2zm9-6h-4v1.9h4a3.1 3.1 0 010 6.2h-4V17h4a5 5 0 100-10z"/></svg></a>
-      </div>
-    </div>
-  </header>
-
-  <!-- GRID: content + sidebar -->
-  <div class="art-grid">
-    <div class="art-main">
-      <div class="prose">
-        <!-- Free part — always visible -->
-        <Fragment set:html={free} />
-
-        <!-- Gate (hidden by JS if subscribed) -->
-        {hasGate && <SubscribeGate slug={post.slug} />}
-
-        <!-- Locked part — hidden by default, revealed by JS when subscribed -->
-        {hasGate && (
-          <div id="locked-content" style="display:none">
-            <Fragment set:html={locked} />
+      <header class="art-header">
+        <span class="cat-tag">{categoryName}</span>
+        <h1 set:html={post.title.rendered} />
+        <div class="meta-row">
+          <div class="byline">
+            <img src={authorAvatar} alt={author} class="avatar" />
+            <span class="bl-text"><b>{author}</b> · {formatDate(post.date)}</span>
           </div>
-        )}
-
-        <!-- If no gate, show all content -->
-        {!hasGate && <Fragment set:html={locked} />}
-      </div>
-
-      <!-- AUTHOR PROFILE -->
-      <div class="author-profile">
-        <div class="au-av">
-          <img src={authorAvatar} alt={author} />
-        </div>
-        <div class="au-body">
-          <div class="au-name">{author}</div>
-          {authorRole && <div class="au-role">{authorRole}</div>}
-          {authorBio && <p class="au-bio" set:html={authorBio} />}
-          <div class="au-socials">
-            <a href="#" aria-label="Facebook" class="au-soc"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg></a>
-            <a href="#" aria-label="YouTube" class="au-soc"><svg viewBox="0 0 24 24"><path d="M21.6 7.2c-.2-1-1-1.7-2-2C17.8 4.8 12 4.8 12 4.8s-5.8 0-7.6.4c-1 .3-1.8 1-2 2C2 9 2 12 2 12s0 3 .4 4.8c.2 1 1 1.7 2 2 1.8.4 7.6.4 7.6.4s5.8 0 7.6-.4c1-.3 1.8-1 2-2C22 15 22 12 22 12s0-3-.4-4.8zM10 15.5v-7l6 3.5-6 3.5z"/></svg></a>
-            <a href="#" aria-label="TikTok" class="au-soc"><svg viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.66a8.2 8.2 0 004.84 1.55V6.76a4.85 4.85 0 01-1.07-.07z"/></svg></a>
-            <a href="#" aria-label="LinkedIn" class="au-soc"><svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg></a>
-            <a href="#" aria-label="X" class="au-soc"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
+          <div class="share" data-pagefind-ignore>
+            <a href="#" aria-label="Share on Facebook" data-share="fb"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg></a>
+            <a href="#" aria-label="Share on LinkedIn" data-share="li"><svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg></a>
+            <a href="#" aria-label="Share on X / Twitter" data-share="tw"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
+            <a href="#" aria-label="Share on Pinterest" data-share="pi"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-3.6 19.3c-.1-.8-.2-2.1.1-3 .3-1.1 1.8-7.8 1.8-7.8s-.5-.9-.5-2.3c0-2.2 1.3-3.8 2.9-3.8 1.4 0 2 1 2 2.3 0 1.4-.9 3.5-1.4 5.5-.4 1.6.8 2.9 2.4 2.9 2.8 0 4.9-3 4.9-7.3 0-3.8-2.8-6.5-6.7-6.5-4.6 0-7.3 3.4-7.3 7 0 1.4.5 2.8 1.3 3.6.1.2.1.3.1.4-.1.6-.4 1.9-.5 2.1-.1.3-.3.4-.5.3-1.9-.9-3.1-3.7-3.1-6 0-4.8 3.5-9.2 10.2-9.2 5.3 0 9.5 3.8 9.5 8.8 0 5.3-3.3 9.5-7.9 9.5-1.5 0-3-.8-3.5-1.7l-.9 3.6c-.3 1.3-1.2 2.9-1.8 3.9A10 10 0 0022 12 10 10 0 0012 2z"/></svg></a>
+            <a href="#" aria-label="Copy link" data-share="copy" id="copy-link"><svg viewBox="0 0 24 24"><path d="M3.9 12a3.1 3.1 0 013.1-3.1h4V7h-4a5 5 0 100 10h4v-1.9h-4A3.1 3.1 0 013.9 12zM8 13h8v-2H8v2zm9-6h-4v1.9h4a3.1 3.1 0 010 6.2h-4V17h4a5 5 0 100-10z"/></svg></a>
           </div>
         </div>
-      </div>
-    </div>
+      </header>
 
-    <aside class="side" data-pagefind-ignore>
-      {tocItems.length > 0 && (
-        <nav class="toc" id="toc">
-          <div class="tt">On This Page</div>
-          {tocItems.map((item, i) => (
-            <a href={`#${item.id}`} class:list={[{ on: i === 0 }]}>{item.text}</a>
-          ))}
-        </nav>
+      <!-- GRID: content + sidebar -->
+      <div class="art-grid">
+        <div class="art-main">
+          <div class="prose">
+            <!-- Free part — always visible -->
+            <Fragment set:html={free} />
+
+            <!-- Gate (hidden by JS if subscribed) -->
+            {hasGate && <SubscribeGate slug={post.slug} />}
+
+            <!-- Locked part — hidden by default, revealed by JS when subscribed -->
+            {hasGate && (
+              <div id="locked-content" style="display:none">
+                <Fragment set:html={locked} />
+              </div>
+            )}
+
+            <!-- If no gate, show all content -->
+            {!hasGate && <Fragment set:html={locked} />}
+          </div>
+
+          <!-- AUTHOR PROFILE -->
+          <div class="author-profile">
+            <div class="au-av">
+              <img src={authorAvatar} alt={author} />
+            </div>
+            <div class="au-body">
+              <div class="au-name">{author}</div>
+              {authorRole && <div class="au-role">{authorRole}</div>}
+              {authorBio && <p class="au-bio" set:html={authorBio} />}
+              <div class="au-socials">
+                <a href="#" aria-label="Facebook" class="au-soc"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg></a>
+                <a href="#" aria-label="YouTube" class="au-soc"><svg viewBox="0 0 24 24"><path d="M21.6 7.2c-.2-1-1-1.7-2-2C17.8 4.8 12 4.8 12 4.8s-5.8 0-7.6.4c-1 .3-1.8 1-2 2C2 9 2 12 2 12s0 3 .4 4.8c.2 1 1 1.7 2 2 1.8.4 7.6.4 7.6.4s5.8 0 7.6-.4c1-.3 1.8-1 2-2C22 15 22 12 22 12s0-3-.4-4.8zM10 15.5v-7l6 3.5-6 3.5z"/></svg></a>
+                <a href="#" aria-label="TikTok" class="au-soc"><svg viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.66a8.2 8.2 0 004.84 1.55V6.76a4.85 4.85 0 01-1.07-.07z"/></svg></a>
+                <a href="#" aria-label="LinkedIn" class="au-soc"><svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg></a>
+                <a href="#" aria-label="X" class="au-soc"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-7-6 7H2l7.8-8.9L1.5 2h7l4.8 6.4zm-1.2 18h1.9L7.4 4H5.4z"/></svg></a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="side" data-pagefind-ignore>
+          {tocItems.length > 0 && (
+            <nav class="toc" id="toc">
+              <div class="tt">On This Page</div>
+              {tocItems.map((item, i) => (
+                <a href={`#${item.id}`} class:list={[{ on: i === 0 }]}>{item.text}</a>
+              ))}
+            </nav>
+          )}
+        </aside>
+      </div>
+
+      <!-- GIFT / LEAD MAGNET -->
+      <section class="gift-box" data-pagefind-ignore>
+        <div class="gk"><svg viewBox="0 0 24 24"><path d="M20 7h-2.2a3 3 0 00-4.3-3.9L12 4.2l-1.5-1.1A3 3 0 006.2 7H4a1 1 0 00-1 1v3a1 1 0 001 1v6a2 2 0 002 2h12a2 2 0 002-2v-6a1 1 0 001-1V8a1 1 0 00-1-1zm-5-2a1 1 0 011 1 1 1 0 01-1 1h-1V6a1 1 0 011-1zM9 5a1 1 0 011 1v1H9a1 1 0 010-2zm2 14H6v-6h5zm0-8H5V9h6zm7 8h-5v-6h5zm1-8h-6V9h6z"/></svg>Before You Go</div>
+        <h2>Get My Free Guide On How To Grow Your Channel To 100k Subscribers</h2>
+        <p class="gp">Sign up to get instant access to The AI YouTube Toolkit — 18 tools &amp; templates used by 7-figure operators. Plus weekly growth tactics, case studies, and creator news delivered to your inbox.</p>
+        <form class="gift-form" onsubmit="return false">
+          <input type="email" placeholder="Enter your email" aria-label="Email address" required>
+          <button class="btn btn-primary" type="submit">Join Free</button>
+        </form>
+        <div class="gnote">Join 15,247+ creators for free.</div>
+      </section>
+
+      <!-- READ NEXT -->
+      {related.length > 0 && (
+        <section class="read-next" data-pagefind-ignore>
+          <h2>Read Next</h2>
+          <div class="rn-grid">
+            {related.map((rp: any) => {
+              const rpCat = getCategoryName(rp, categories);
+              const rpImg = getFeaturedImage(rp);
+              return (
+                <a href={`/${rp.slug}`} class="rn-card">
+                  <div class="rc" style={rpImg ? `background-image:url(${rpImg})` : `background:${getCatColor(rpCat)}`}></div>
+                  <div class="rb"><div class="rt" set:html={rp.title.rendered} /></div>
+                </a>
+              );
+            })}
+          </div>
+        </section>
       )}
+    </article>
+  </BaseLayout>
+) : (
+  <BaseLayout title={category.name} description={category.description || `Explore articles in the ${category.name} category.`} activePage="category">
+    <section class="blog">
+      <nav class="crumb">
+        <a href="/">Home</a><span class="sep">/</span>
+        <a href="/category/">Categories</a><span class="sep">/</span>
+        <span class="cur">{category.name}</span>
+      </nav>
+      <div class="blog-head">
+        <h1>{category.name}</h1>
+        {category.description ? <p>{category.description}</p> : <p>Articles in the {category.name} category.</p>}
+      </div>
 
-    </aside>
-  </div>
-
-  <!-- GIFT / LEAD MAGNET -->
-  <section class="gift-box" data-pagefind-ignore>
-    <div class="gk"><svg viewBox="0 0 24 24"><path d="M20 7h-2.2a3 3 0 00-4.3-3.9L12 4.2l-1.5-1.1A3 3 0 006.2 7H4a1 1 0 00-1 1v3a1 1 0 001 1v6a2 2 0 002 2h12a2 2 0 002-2v-6a1 1 0 001-1V8a1 1 0 00-1-1zm-5-2a1 1 0 011 1 1 1 0 01-1 1h-1V6a1 1 0 011-1zM9 5a1 1 0 011 1v1H9a1 1 0 010-2zm2 14H6v-6h5zm0-8H5V9h6zm7 8h-5v-6h5zm1-8h-6V9h6z"/></svg>Before You Go</div>
-    <h2>Get My Free Guide On How To Grow Your Channel To 100k Subscribers</h2>
-    <p class="gp">Sign up to get instant access to The AI YouTube Toolkit — 18 tools &amp; templates used by 7-figure operators. Plus weekly growth tactics, case studies, and creator news delivered to your inbox.</p>
-    <form class="gift-form" onsubmit="return false">
-      <input type="email" placeholder="Enter your email" aria-label="Email address" required>
-      <button class="btn btn-primary" type="submit">Join Free</button>
-    </form>
-    <div class="gnote">Join 15,247+ creators for free.</div>
-  </section>
-
-  <!-- READ NEXT -->
-  {related.length > 0 && (
-    <section class="read-next" data-pagefind-ignore>
-      <h2>Read Next</h2>
-      <div class="rn-grid">
-        {related.map((rp: any) => {
-          const rpCat = getCategoryName(rp, categories);
-          const rpImg = getFeaturedImage(rp);
+      <!-- Article Grid (paginated via client-side JS) -->
+      <div class="card-grid" id="posts-grid">
+        {categoryPosts.map((post: any, index: number) => {
+          const pImg = getFeaturedImage(post);
           return (
-            <a href={`/${rp.slug}`} class="rn-card">
-              <div class="rc" style={rpImg ? `background-image:url(${rpImg})` : `background:${getCatColor(rpCat)}`}></div>
-              <div class="rb"><div class="rt" set:html={rp.title.rendered} /></div>
+            <a href={`/${post.slug}/`} class="art-card" data-index={index} style={index >= POSTS_PER_PAGE ? "display:none" : ""}>
+              <div class="art-cover" style={pImg ? `background-image:url(${pImg})` : `background:${getCatColor(category.name)}`}></div>
+              <div class="art-body">
+                <span class="art-cat">{category.name}</span>
+                <h3 class="art-title" set:html={post.title.rendered} />
+              </div>
             </a>
           );
         })}
       </div>
+
+      <!-- Pagination Controls -->
+      {totalPages > 1 && (
+        <nav class="pagination" id="pagination">
+          <button class="pg-btn pg-prev" id="pg-prev" disabled>Prev</button>
+          <div class="pg-numbers" id="pg-numbers"></div>
+          <button class="pg-btn pg-next" id="pg-next">Next</button>
+        </nav>
+      )}
     </section>
-  )}
-</article>
-</BaseLayout>
+  </BaseLayout>
+)}
 
-<script>
-// Progress bar — 100% when article bottom reaches viewport
-const bar=document.getElementById('progress');
-const doc=document.documentElement;
-const artEl=document.querySelector('article.article') as HTMLElement|null;
-function onScroll(){
-  if(!bar||!artEl) return;
-  const start=artEl.offsetTop;
-  const end=artEl.offsetTop+artEl.offsetHeight-doc.clientHeight;
-  const pct=end>start?Math.max(0,Math.min(100,((doc.scrollTop-start)/(end-start))*100)):0;
-  bar.style.width=pct+'%';
-}
-document.addEventListener('scroll',onScroll,{passive:true});onScroll();
-
-// Share buttons
-document.querySelectorAll('[data-share]').forEach(btn=>{
-  btn.addEventListener('click',(e)=>{
-    e.preventDefault();
-    const url=encodeURIComponent(window.location.href);
-    const txt=encodeURIComponent(document.title);
-    const map:Record<string,string>={
-      fb:`https://www.facebook.com/sharer/sharer.php?u=${url}`,
-      li:`https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-      tw:`https://twitter.com/intent/tweet?url=${url}&text=${txt}`,
-      pi:`https://pinterest.com/pin/create/button/?url=${url}&description=${txt}`,
-    };
-    const key=(btn as HTMLElement).dataset.share||'';
-    if(key==='copy'){
-      navigator.clipboard.writeText(window.location.href).then(()=>{
-        const el=btn as HTMLElement;
-        el.setAttribute('aria-label','Copied!');
-        el.style.color='var(--red-500)';
-        setTimeout(()=>{el.setAttribute('aria-label','Copy link');el.style.color='';},2000);
-      });
-    } else if(map[key]){
-      window.open(map[key],'_blank','width=600,height=500,noopener');
+{type === 'post' && (
+  <script>
+    // Progress bar — 100% when article bottom reaches viewport
+    const bar=document.getElementById('progress');
+    const doc=document.documentElement;
+    const artEl=document.querySelector('article.article') as HTMLElement|null;
+    function onScroll(){
+      if(!bar||!artEl) return;
+      const start=artEl.offsetTop;
+      const end=artEl.offsetTop+artEl.offsetHeight-doc.clientHeight;
+      const pct=end>start?Math.max(0,Math.min(100,((doc.scrollTop-start)/(end-start))*100)):0;
+      bar.style.width=pct+'%';
     }
-  });
-});
+    document.addEventListener('scroll',onScroll,{passive:true});onScroll();
 
-// TOC highlight
-const links=[...document.querySelectorAll('#toc a')];
-const secs=links.map(l=>document.querySelector(l.getAttribute('href')!));
-const obs=new IntersectionObserver(es=>{
-  es.forEach(en=>{if(en.isIntersecting){const id='#'+en.target.id;links.forEach(l=>l.classList.toggle('on',l.getAttribute('href')===id));}});
-},{rootMargin:'-15% 0px -70% 0px'});
-secs.forEach(s=>s&&obs.observe(s));
+    // Share buttons
+    document.querySelectorAll('[data-share]').forEach(btn=>{
+      btn.addEventListener('click',(e)=>{
+        e.preventDefault();
+        const url=encodeURIComponent(window.location.href);
+        const txt=encodeURIComponent(document.title);
+        const map:Record<string,string>={
+          fb:`https://www.facebook.com/sharer/sharer.php?u=${url}`,
+          li:`https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+          tw:`https://twitter.com/intent/tweet?url=${url}&text=${txt}`,
+          pi:`https://pinterest.com/pin/create/button/?url=${url}&description=${txt}`,
+        };
+        const key=(btn as HTMLElement).dataset.share||'';
+        if(key==='copy'){
+          navigator.clipboard.writeText(window.location.href).then(()=>{
+            const el=btn as HTMLElement;
+            el.setAttribute('aria-label','Copied!');
+            el.style.color='var(--red-500)';
+            setTimeout(()=>{el.setAttribute('aria-label','Copy link');el.style.color='';},2000);
+          });
+        } else if(map[key]){
+          window.open(map[key],'_blank','width=600,height=500,noopener');
+        }
+      });
+    });
 
-// Check subscriber/dismiss status on load
-function getCk(n: string){const m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?m[1]:null}
-const isSub = getCk('to_sub') === '1';
-const isDismissed = getCk('to_gate_dismiss') === '1';
+    // TOC highlight
+    const links=[...document.querySelectorAll('#toc a')];
+    if (links.length > 0) {
+      const secs=links.map(l=>document.querySelector(l.getAttribute('href')!));
+      const obs=new IntersectionObserver(es=>{
+        es.forEach(en=>{if(en.isIntersecting){const id='#'+en.target.id;links.forEach(l=>l.classList.toggle('on',l.getAttribute('href')===id));}});
+      },{rootMargin:'-15% 0px -70% 0px'});
+      secs.forEach(s=>s&&obs.observe(s));
+    }
 
-if (isSub || isDismissed) {
-  const g = document.getElementById('gate'); if (g) g.style.display = 'none';
-  const l = document.getElementById('locked-content'); if (l) l.style.display = 'block';
-}
-</script>
+    // Check subscriber/dismiss status on load
+    function getCk(n: string){const m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?m[1]:null}
+    const isSub = getCk('to_sub') === '1';
+    const isDismissed = getCk('to_gate_dismiss') === '1';
+
+    if (isSub || isDismissed) {
+      const g = document.getElementById('gate'); if (g) g.style.display = 'none';
+      const l = document.getElementById('locked-content'); if (l) l.style.display = 'block';
+    }
+  </script>
+)}
+
+{type === 'category' && (
+  <script define:vars={{ POSTS_PER_PAGE, totalPages }}>
+    let currentPage = 1;
+    const cards = [...document.querySelectorAll('#posts-grid .art-card')];
+    const pgNumbers = document.getElementById('pg-numbers');
+    const pgPrev = document.getElementById('pg-prev');
+    const pgNext = document.getElementById('pg-next');
+
+    function showPage(page) {
+      const start = (page - 1) * POSTS_PER_PAGE;
+      const end = start + POSTS_PER_PAGE;
+      cards.forEach((card, i) => {
+        (card as HTMLElement).style.display = i >= start && i < end ? '' : 'none';
+      });
+      currentPage = page;
+      renderNumbers();
+      if (pgPrev) (pgPrev as HTMLButtonElement).disabled = page === 1;
+      if (pgNext) (pgNext as HTMLButtonElement).disabled = page === totalPages;
+    }
+
+    function renderNumbers() {
+      if (!pgNumbers) return;
+      pgNumbers.innerHTML = getPageRange(currentPage, totalPages).map(p =>
+        p === '…'
+          ? `<span class="pg-dot">…</span>`
+          : `<button class="pg-num${p === currentPage ? ' active' : ''}" data-p="${p}">${p}</button>`
+      ).join('');
+
+      pgNumbers.querySelectorAll('.pg-num').forEach(btn => {
+        btn.addEventListener('click', () => {
+          showPage(parseInt(btn.getAttribute('data-p') || '1'));
+          document.getElementById('posts-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    }
+
+    function getPageRange(cur, total) {
+      if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+      if (cur <= 4) return [1, 2, 3, 4, 5, '…', total];
+      if (cur >= total - 3) return [1, '…', total-4, total-3, total-2, total-1, total];
+      return [1, '…', cur-1, cur, cur+1, '…', total];
+    }
+
+    pgPrev?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        showPage(currentPage - 1);
+        document.getElementById('posts-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    pgNext?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        showPage(currentPage + 1);
+        document.getElementById('posts-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    if (totalPages > 1) renderNumbers();
+  </script>
+)}
 
 <style>
 .progress{position:fixed;top:0;left:0;height:4px;width:0;background:var(--red-500);z-index:50;transition:width .08s linear}
@@ -401,6 +551,45 @@ if (isSub || isDismissed) {
 .rn-card .rb{padding:var(--sp-5)}
 .rn-card .rt{font-family:var(--font-display);font-weight:700;font-size:18px;line-height:1.3}
 
+/* ===== Category Page / Sub-archive ===== */
+.blog {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--sp-7) 48px var(--sp-8);
+}
+.blog-head {
+  max-width: none;
+  margin-bottom: var(--sp-7);
+}
+.blog-head h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 48px;
+  line-height: 1.1;
+  letter-spacing: -.03em;
+  text-transform: capitalize;
+}
+.blog-head p {
+  font-size: 20px;
+  color: var(--ink-600);
+  margin-top: var(--sp-3);
+  line-height: 1.6;
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-5);
+}
+.art-cat {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--red-600);
+  margin-bottom: 8px;
+}
+
 @media(max-width:980px){
   .article{padding:var(--sp-6) 24px var(--sp-7)}
   .art-header h1{font-size:36px}
@@ -409,6 +598,14 @@ if (isSub || isDismissed) {
   .toc{display:none}
   .prose{max-width:none}
   .rn-grid{grid-template-columns:1fr 1fr}
+
+  .blog { padding: var(--sp-6) 24px var(--sp-7); }
+  .blog-head h1 { font-size: 38px; }
+  .card-grid { grid-template-columns: 1fr 1fr; }
+}
+@media(max-width:620px){
+  .blog-head h1 { font-size: 32px; }
+  .card-grid { grid-template-columns: 1fr; }
 }
 @media(max-width:560px){
   .art-header h1{font-size:30px}
@@ -421,5 +618,65 @@ if (isSub || isDismissed) {
   .share{gap:6px}
   .share a{width:30px;height:30px}
   .share svg{width:13px;height:13px}
+}
+</style>
+
+<style is:global>
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-8);
+  padding: var(--sp-7) 0;
+  border-top: 1px solid var(--ink-200);
+}
+.pg-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 20px;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--ink-200);
+  background: var(--bg-surface);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .18s var(--ease);
+}
+.pg-btn:hover:not(:disabled) {
+  border-color: var(--red-400);
+  color: var(--red-600);
+  background: var(--red-50);
+}
+.pg-btn:disabled { opacity: .3; cursor: not-allowed; }
+.pg-numbers { display: flex; align-items: center; gap: 4px; margin: 0 var(--sp-2); }
+.pg-num {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  border: 1.5px solid transparent;
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all .18s var(--ease);
+}
+.pg-num.active {
+  background: var(--red-500);
+  color: #fff;
+  border-color: var(--red-500);
+}
+.pg-num:hover:not(.active) {
+  border-color: var(--ink-300);
+  background: var(--ink-50);
+}
+.pg-dot {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-400);
+  font-weight: 700;
 }
 </style>

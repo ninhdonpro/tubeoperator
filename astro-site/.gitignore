@@ -28,3 +28,4 @@ spec.md
 task.md
 ./design
 .agent
+.wrangler/
