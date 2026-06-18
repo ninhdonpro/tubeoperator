@@ -90,7 +90,14 @@ const embedLayout = "{'id':'INLINE'}";
       console.log('[nl-form] Response body:', text);
 
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
-      window.location.href = '/survey?email=' + encodeURIComponent(email);
+      // Forward the server-detected country (from CF-IPCountry) to the survey so
+      // its hidden Country field is prefilled with the real value — GHL's own
+      // auto-detect otherwise overwrites it with the wrong country.
+      let country = '';
+      try { country = JSON.parse(text)?.country || ''; } catch {}
+      let surveyUrl = '/survey?email=' + encodeURIComponent(email);
+      if (country) surveyUrl += '&country=' + encodeURIComponent(country);
+      window.location.href = surveyUrl;
     } catch (err) {
       console.error('[nl-form] Error:', err);
       if (nlError) nlError.textContent = 'Something went wrong. Please try again.';

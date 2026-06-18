@@ -58,13 +58,15 @@ export async function onRequestPost({ request, env }) {
       const text = await ghlRes.text();
       // Treat duplicate contact (already subscribed) as success
       if (ghlRes.status === 400 && text.includes('duplicated')) {
-        return Response.json({ success: true });
+        return Response.json({ success: true, country });
       }
       console.error('GHL API error', ghlRes.status, text);
       return Response.json({ error: 'Subscription failed' }, { status: 502 });
     }
 
-    return Response.json({ success: true });
+    // Return the detected country so the client can forward it to the survey
+    // (the survey iframe prefills a hidden Country field from the URL).
+    return Response.json({ success: true, country });
   } catch (err) {
     console.error('Subscribe error:', err);
     return Response.json({ error: 'Internal error' }, { status: 500 });

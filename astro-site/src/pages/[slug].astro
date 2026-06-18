@@ -191,9 +191,10 @@ const totalPages = type === 'category' ? Math.ceil(categoryPosts.length / POSTS_
     <div class="progress" id="progress"></div>
 
     <article class="article" data-pagefind-body>
-      <nav class="crumb" data-pagefind-ignore><a href="/">Home</a><span class="sep">/</span><a href={`/${categorySlug}/`}>{categoryName}</a><span class="sep">/</span><span class="cur">{title}</span></nav>
-
-      <header class="art-header">
+      <!-- GRID: content + sidebar -->
+      <div class="art-grid">
+        <div class="art-main">
+          <header class="art-header">
         <a href={`/${categorySlug}/`} class="cat-tag">{categoryName}</a>
         <h1 set:html={post.title.rendered} />
         <div class="meta-row">
@@ -209,11 +210,8 @@ const totalPages = type === 'category' ? Math.ceil(categoryPosts.length / POSTS_
             <a href="#" aria-label="Copy link" data-share="copy" id="copy-link"><svg viewBox="0 0 24 24"><path d="M3.9 12a3.1 3.1 0 013.1-3.1h4V7h-4a5 5 0 100 10h4v-1.9h-4A3.1 3.1 0 013.9 12zM8 13h8v-2H8v2zm9-6h-4v1.9h4a3.1 3.1 0 010 6.2h-4V17h4a5 5 0 100-10z"/></svg></a>
           </div>
         </div>
-      </header>
+          </header>
 
-      <!-- GRID: content + sidebar -->
-      <div class="art-grid">
-        <div class="art-main">
           <div class="prose">
             <!-- Free part — always visible -->
             <Fragment set:html={free} />
@@ -264,17 +262,18 @@ const totalPages = type === 'category' ? Math.ceil(categoryPosts.length / POSTS_
         </aside>
       </div>
 
-      <!-- GIFT / LEAD MAGNET -->
+      {/* GIFT / LEAD MAGNET — temporarily hidden until a real lead magnet is ready. Re-enable by uncommenting.
       <section class="gift-box" data-pagefind-ignore>
         <div class="gk"><svg viewBox="0 0 24 24"><path d="M20 7h-2.2a3 3 0 00-4.3-3.9L12 4.2l-1.5-1.1A3 3 0 006.2 7H4a1 1 0 00-1 1v3a1 1 0 001 1v6a2 2 0 002 2h12a2 2 0 002-2v-6a1 1 0 001-1V8a1 1 0 00-1-1zm-5-2a1 1 0 011 1 1 1 0 01-1 1h-1V6a1 1 0 011-1zM9 5a1 1 0 011 1v1H9a1 1 0 010-2zm2 14H6v-6h5zm0-8H5V9h6zm7 8h-5v-6h5zm1-8h-6V9h6z"/></svg>Before You Go</div>
         <h2>Get My Free Guide On How To Grow Your Channel To 100k Subscribers</h2>
-        <p class="gp">Sign up to get instant access to The AI YouTube Toolkit — 18 tools &amp; templates used by 7-figure operators. Plus weekly growth tactics, case studies, and creator news delivered to your inbox.</p>
+        <p class="gp">Sign up to get instant access to The AI YouTube Toolkit — 18 tools & templates used by 7-figure operators. Plus weekly growth tactics, case studies, and creator news delivered to your inbox.</p>
         <form class="gift-form" onsubmit="return false">
           <input type="email" placeholder="Enter your email" aria-label="Email address" required>
           <button class="btn btn-primary" type="submit">Join Free</button>
         </form>
         <div class="gnote">Join 15,247+ creators for free.</div>
       </section>
+      */}
 
       <!-- READ NEXT -->
       {related.length > 0 && (
@@ -471,7 +470,7 @@ const totalPages = type === 'category' ? Math.ceil(categoryPosts.length / POSTS_
 .crumb .sep{margin:0 8px;color:var(--ink-300)}
 .crumb .cur{color:var(--ink-900);font-weight:600}
 
-.art-header{max-width:none}
+.art-header{max-width:none;margin-bottom:var(--sp-6);padding-bottom:var(--sp-6);border-bottom:1px solid var(--ink-200)}
 .cat-tag{font-size:13px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--red-600);transition:color .12s var(--ease)}
 .cat-tag:hover{color:var(--red-800)}
 .art-header h1{font-family:var(--font-display);font-weight:800;font-size:46px;line-height:1.22;letter-spacing:-.03em;margin:12px 0 16px;text-transform:capitalize}
@@ -502,9 +501,43 @@ const totalPages = type === 'category' ? Math.ceil(categoryPosts.length / POSTS_
 .prose :global(a:hover){color:var(--red-700);border-color:var(--red-400)}
 .prose :global(blockquote){border-left:3px solid var(--red-500);padding-left:24px;margin:36px 0;font-style:italic;font-size:23px;line-height:1.6;color:var(--ink-700);font-family:var(--font-serif)}
 .prose :global(blockquote p){margin:0}
-.prose :global(img){max-width:100%;height:auto;border-radius:var(--r-md);margin:32px auto}
-.prose :global(figure){margin:32px 0}
+/* ===== WordPress image alignments ===== */
+/* Targets the align class directly so it matches every WP variant:
+   figure.alignX, img.alignX, and .wp-block-image.alignX. */
+/* Base image: scale to container, left-aligned by default (do NOT auto-center) */
+.prose :global(img){max-width:100%;height:auto;border-radius:var(--r-md);display:block}
+.prose :global(figure),
+.prose :global(.wp-block-image){margin:32px 0}
 .prose :global(figcaption){font-size:14px;color:var(--ink-500);text-align:center;margin-top:8px}
+
+/* center */
+.prose :global(.aligncenter){text-align:center;margin:32px auto}
+.prose :global(.aligncenter img){margin-left:auto;margin-right:auto;display:block}
+
+/* left float — text wraps to the right */
+.prose :global(.alignleft){float:left;margin:6px 32px 20px 0;max-width:50%}
+
+/* right float — text wraps to the left */
+.prose :global(.alignright){float:right;margin:6px 0 20px 32px;max-width:50%}
+
+/* wide — breaks out modestly beyond the text column (stays within column gutters) */
+.prose :global(.alignwide){margin-left:calc(-1 * var(--sp-6));margin-right:calc(-1 * var(--sp-6));width:calc(100% + var(--sp-6) * 2);max-width:none}
+.prose :global(.alignwide img){width:100%}
+
+/* full — edge to edge across the article column (capped at article padding so it won't overlap the sidebar) */
+.prose :global(.alignfull){margin-left:calc(-1 * var(--sp-7));margin-right:calc(-1 * var(--sp-7));width:calc(100% + var(--sp-7) * 2);max-width:none}
+.prose :global(.alignfull img){width:100%;border-radius:0}
+
+/* clearfix: contain trailing floats without clipping the wide/full negative-margin breakout */
+.prose::after{content:"";display:block;clear:both}
+
+/* mobile: floats and breakout collapse to plain full-width blocks */
+@media(max-width:640px){
+  .prose :global(.alignleft),
+  .prose :global(.alignright){float:none;max-width:100%;margin:24px 0}
+  .prose :global(.alignwide),
+  .prose :global(.alignfull){margin-left:0;margin-right:0;width:100%}
+}
 
 /* sidebar */
 .side{position:sticky;top:96px;display:flex;flex-direction:column;gap:var(--sp-5)}

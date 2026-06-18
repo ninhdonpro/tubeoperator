@@ -18,13 +18,32 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   <div class="survey-embed">
     <iframe
-      src="https://api.automator.vn/widget/survey/kjLBhiBQl4TfrqHlF6AD"
+      data-base-src="https://api.automator.vn/widget/survey/kjLBhiBQl4TfrqHlF6AD"
       style="border:none;width:100%;"
       scrolling="no"
       id="kjLBhiBQl4TfrqHlF6AD"
       title="survey"
     ></iframe>
   </div>
+  <!-- Build the iframe src from this page's query params (email, country) so the GHL
+       survey prefills matching fields. Country comes from /api/subscribe (CF-IPCountry)
+       via the homepage redirect; the survey's hidden Country field must use query key
+       `country`. Must run BEFORE form_embed.js so the form is processed with the params. -->
+  <script is:inline>
+    (function () {
+      var iframe = document.getElementById('kjLBhiBQl4TfrqHlF6AD');
+      if (!iframe) return;
+      var base = iframe.getAttribute('data-base-src');
+      var pageParams = new URLSearchParams(window.location.search);
+      var forward = new URLSearchParams();
+      ['email', 'country'].forEach(function (key) {
+        var val = pageParams.get(key);
+        if (val) forward.set(key, val);
+      });
+      var qs = forward.toString();
+      iframe.src = qs ? base + '?' + qs : base;
+    })();
+  </script>
   <script is:inline src="https://api.automator.vn/js/form_embed.js"></script>
 </section>
 
