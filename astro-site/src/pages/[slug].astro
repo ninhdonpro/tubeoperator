@@ -72,6 +72,7 @@ let intro = '';
 let free = '';
 let locked = '';
 let hasGate = false;
+let disableGate = false;
 let subscribed = false;
 let dismissed = false;
 let authorAvatar = '';
@@ -127,7 +128,13 @@ if (type === 'post') {
   intro = splitResult.intro;
   free = splitResult.free;
   locked = splitResult.locked;
-  hasGate = locked.length > 0;
+  
+  // Read disable_gate from ACF
+  disableGate = post.acf?.disable_gate ?? false;
+  
+  // If gate is disabled, show all content without gate
+  // Otherwise, apply gate logic
+  hasGate = locked.length > 0 && !disableGate;
 
   subscribed = Astro.cookies.get('to_sub')?.value === '1';
   dismissed = Astro.cookies.get('to_gate_dismiss')?.value === '1';
