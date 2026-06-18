@@ -32,11 +32,9 @@ function getFeaturedImage(post: any): string | null {
 
 <BaseLayout title="Blog" activePage="blog">
 <section class="blog">
-  <nav class="crumb"><a href="/">Home</a><span class="sep">/</span><span class="cur">Blog</span></nav>
-
   <div class="blog-head">
-    <h1>Playbooks To Grow Your Channel</h1>
-    <p>Data-backed strategies on the algorithm, thumbnails, editing and monetization — written by operators who've done it.</p>
+    <h1>How To Build A <span class="hl">7-Figure</span> YouTube Channel</h1>
+    <p>The exact playbooks, systems and data behind channels that turned views into seven figures — broken down by operators who've built them.</p>
   </div>
 
   <!-- SEARCH BAR -->
@@ -207,8 +205,9 @@ function getFeaturedImage(post: any): string | null {
 .crumb a:hover{color:var(--red-600)}
 .crumb .sep{margin:0 8px;color:var(--ink-300)}
 .crumb .cur{color:var(--ink-900);font-weight:600}
-.blog-head{max-width:720px;margin-bottom:var(--sp-7)}
+.blog-head{max-width:725px;margin-bottom:var(--sp-7)}
 .blog-head h1{font-family:var(--font-display);font-weight:800;font-size:48px;line-height:1.1;letter-spacing:-.03em;text-transform:capitalize}
+.blog-head h1 .hl{color:var(--red-600);text-decoration:underline;text-decoration-thickness:.08em;text-underline-offset:.12em}
 .blog-head p{font-size:20px;color:var(--ink-600);margin-top:var(--sp-3);line-height:1.6}
 
 /* featured */
