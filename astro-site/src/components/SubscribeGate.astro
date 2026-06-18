@@ -121,14 +121,13 @@ const gateEmbedLayout = "{'id':'INLINE'}";
   });
 
   notNow?.addEventListener('click', () => {
-    document.cookie = 'to_gate_dismiss=1; path=/; max-age=604800; SameSite=Lax; Secure';
-    
-    // Query elements dynamically to ensure they are found after full DOM load
-    const gate = document.getElementById('gate');
-    const locked = document.getElementById('locked-content');
-
-    if (gate) gate.style.display = 'none';
-    if (locked) locked.style.display = 'block';
+    // Redirect to previous page instead of dismissing
+    if (document.referrer) {
+      window.location.href = document.referrer;
+    } else {
+      // Fallback to home if no referrer
+      window.history.back();
+    }
   });
 </script>
 

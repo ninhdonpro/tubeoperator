@@ -68,6 +68,7 @@ let excerpt = '';
 let catColor = '';
 let related: any[] = [];
 let tocItems: {id: string, text: string}[] = [];
+let intro = '';
 let free = '';
 let locked = '';
 let hasGate = false;
@@ -123,6 +124,7 @@ if (type === 'post') {
   });
 
   const splitResult = splitGate(contentHtml);
+  intro = splitResult.intro;
   free = splitResult.free;
   locked = splitResult.locked;
   hasGate = locked.length > 0;
@@ -213,21 +215,27 @@ const totalPages = type === 'category' ? Math.ceil(categoryPosts.length / POSTS_
           </header>
 
           <div class="prose">
-            <!-- Free part — always visible -->
-            <Fragment set:html={free} />
+            <!-- Intro — always visible -->
+            {hasGate && <Fragment set:html={intro} />}
 
             <!-- Gate (hidden by JS if subscribed) -->
             {hasGate && <SubscribeGate slug={post.slug} />}
 
-            <!-- Locked part — hidden by default, revealed by JS when subscribed -->
+            <!-- Free + Locked part — hidden by default, revealed by JS when subscribed -->
             {hasGate && (
               <div id="locked-content" style="display:none">
-                <Fragment set:html={locked} />
+                <Fragment set:html={free + locked} />
               </div>
             )}
 
             <!-- If no gate, show all content -->
-            {!hasGate && <Fragment set:html={locked} />}
+            {!hasGate && (
+              <>
+                <Fragment set:html={intro} />
+                <Fragment set:html={free} />
+                <Fragment set:html={locked} />
+              </>
+            )}
           </div>
 
           <!-- AUTHOR PROFILE -->

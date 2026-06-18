@@ -61,7 +61,7 @@ function getFeaturedImage(post: any): string | null {
     const fpCat = getCategoryName(fp, categories);
     const fpImg = getFeaturedImage(fp);
     return (
-      <a href={`/${fp.slug}`} class="featured">
+      <a href={`/${fp.slug}/`} class="featured">
         <div class="fc" style={fpImg ? `background-image:url(${fpImg})` : `background:${getCatColor(fpCat)}`}>
           <span class="badge badge-dark fbadge">Editor's pick</span>
         </div>
@@ -92,7 +92,7 @@ function getFeaturedImage(post: any): string | null {
       const pCat = getCategoryName(post, categories);
       const pImg = getFeaturedImage(post);
       return (
-        <a href={`/${post.slug}`} class="art-card">
+        <a href={`/${post.slug}/`} class="art-card">
           <div class="art-cover" style={pImg ? `background-image:url(${pImg})` : `background:${getCatColor(pCat)}`}>
           </div>
           <div class="art-body">
