@@ -176,7 +176,7 @@ if (type === 'post') {
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": `https://tubeoperator.com/${post.slug}`
+      "@id": `https://tubeoperator.com/${post.slug}/`
     },
     "aggregateRating": {
       "@type": "AggregateRating",
@@ -195,7 +195,7 @@ const totalPages = type === 'category' ? Math.ceil(categoryPosts.length / POSTS_
 ---
 
 {type === 'post' ? (
-  <BaseLayout title={slimSeoTitle} description={slimSeoDesc} ogTitle={slimSeoTitle} ogDescription={slimSeoDesc} ogImage={featuredImage || undefined} activePage="blog">
+  <BaseLayout title={slimSeoTitle} description={slimSeoDesc} ogTitle={slimSeoTitle} ogDescription={slimSeoDesc} ogImage={featuredImage || undefined} ogType="article" canonical={`https://tubeoperator.com/${post.slug}/`} appendSiteName={false} activePage="blog">
     <script type="application/ld+json" set:html={schemaString} />
     <div class="progress" id="progress"></div>
 

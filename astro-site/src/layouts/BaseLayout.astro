@@ -7,7 +7,17 @@ interface Props {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  /** Explicit canonical URL. When omitted, auto-derived from the page path. */
+  canonical?: string;
+  /** open-graph type, e.g. 'website' (default) or 'article'. */
+  ogType?: string;
+  /** Append " — TubeOperator" to <title>. Disable for posts whose Slim SEO title already carries its own suffix. */
+  appendSiteName?: boolean;
 }
+
+const SITE_URL = 'https://tubeoperator.com';
+const SITE_NAME = 'TubeOperator';
+const DEFAULT_OG_IMAGE = 'https://cdn.tubeoperator.com/web/2026/06/tmpvv3y_1yx.webp';
 
 const {
   title,
@@ -16,9 +26,28 @@ const {
   minimalHeader = false,
   ogTitle,
   ogDescription,
-  ogImage
+  ogImage,
+  canonical,
+  ogType = 'website',
+  appendSiteName = true,
 } = Astro.props;
 
+// <title>: posts pass appendSiteName=false because Slim SEO already includes the suffix;
+// every other (non-post) page keeps the " — TubeOperator" suffix.
+const pageTitle = appendSiteName ? `${title} — ${SITE_NAME}` : title;
+
+// Canonical: explicit value wins; otherwise derive from the current path on the
+// production domain. All canonicals carry a trailing slash.
+function withTrailingSlash(path: string): string {
+  if (path.length > 1 && path.endsWith('/index.html')) path = path.slice(0, -'index.html'.length);
+  if (!path.endsWith('/')) path += '/';
+  return path;
+}
+const canonicalUrl = canonical || `${SITE_URL}${withTrailingSlash(Astro.url.pathname)}`;
+
+const resolvedOgTitle = ogTitle || title;
+const resolvedOgDescription = ogDescription || description;
+const resolvedOgImage = ogImage || DEFAULT_OG_IMAGE;
 ---
 
 <!DOCTYPE html>
@@ -34,10 +63,20 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','GTM-TWR67DFM');</script>
 <!-- End Google Tag Manager -->
 <meta name="description" content={description} />
-<title>{title} — TubeOperator</title>
-<meta property="og:title" content={ogTitle || title} />
-<meta property="og:description" content={ogDescription || description} />
-{ogImage && <meta property="og:image" content={ogImage} />}
+<title>{pageTitle}</title>
+<link rel="canonical" href={canonicalUrl} />
+<!-- Open Graph -->
+<meta property="og:title" content={resolvedOgTitle} />
+<meta property="og:description" content={resolvedOgDescription} />
+<meta property="og:image" content={resolvedOgImage} />
+<meta property="og:type" content={ogType} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:site_name" content={SITE_NAME} />
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={resolvedOgTitle} />
+<meta name="twitter:description" content={resolvedOgDescription} />
+<meta name="twitter:image" content={resolvedOgImage} />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
